@@ -33,17 +33,20 @@ function tokens(value) {
  * units. Matching this convention keeps the two meters visually consistent.
  *
  * @param value - token count.
- * @param t - the locale `t` seat.
+ * @param t - the locale `t` seat. Optional: both shipped dictionaries render
+ *   these two templates identically, so the English shape is the default and a
+ *   caller with no seat (a test, an export) still gets the official convention.
  * @returns the compact localized count.
  */
 function formatTokens(value, t) {
   const count = tokens(value)
+  const translate = typeof t === 'function' ? t : (key, params) => params.value + (key === 'unit.million' ? 'M' : 'K')
   const scaled = candidate => candidate >= 100
     ? String(Math.round(candidate))
     : String(Math.round(candidate * 10) / 10)
   if (count < 1_000) return String(count)
-  if (count < 1_000_000) return t('unit.thousand', { value: scaled(count / 1_000) })
-  return t('unit.million', { value: scaled(count / 1_000_000) })
+  if (count < 1_000_000) return translate('unit.thousand', { value: scaled(count / 1_000) })
+  return translate('unit.million', { value: scaled(count / 1_000_000) })
 }
 
 /**
@@ -63,14 +66,22 @@ function occupancyOf(pressure) {
     return { available: false, reason: 'no-projection' }
   }
   const window = tokens(pressure.contextWindow)
-  const reported = tokens(pressure.pressureTokens)
-  const projected = pressure.projectedTokens === undefined ? reported : tokens(pressure.projectedTokens)
+  // Presence is decided BEFORE coercion. `undefined` means "the host has not
+  // reported usage yet" and there is no reading to show; an explicit `0` is a
+  // real provider figure that the official meter renders as a 0% ring. Coercing
+  // both to 0 would collapse those two states into one and hide a live reading.
+  const rawUsed = pressure.projectedTokens ?? pressure.pressureTokens
+  const usable = typeof rawUsed === 'number' && Number.isFinite(rawUsed) && rawUsed >= 0
   if (window === 0) {
     return { available: false, reason: 'no-window' }
   }
-  if (reported === 0 && projected === 0) {
+  if (!usable) {
+    // Absent, or a nonsensical negative/non-finite anchor a provider should
+    // never send. Both are "no reading", never a fabricated zero.
     return { available: false, reason: 'no-usage', contextWindow: window }
   }
+  const reported = tokens(pressure.pressureTokens)
+  const projected = pressure.projectedTokens === undefined ? reported : tokens(pressure.projectedTokens)
   const used = Math.min(projected, window)
   const remaining = Math.max(0, window - used)
   return {

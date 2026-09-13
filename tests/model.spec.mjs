@@ -77,10 +77,12 @@ test('occupancyOf reports absence rather than guessing', () => {
     { available: false, reason: 'no-usage', contextWindow: 1000 },
     'the known window is preserved even without usage',
   )
-  assert.deepEqual(
-    model.occupancyOf({ contextWindow: 1000, pressureTokens: 0 }),
-    { available: false, reason: 'no-usage', contextWindow: 1000 },
-  )
+  // An explicit 0 is a real provider figure, not a missing one: the official
+  // meter renders it as a 0% ring, so we report a reading rather than nothing.
+  const zero = model.occupancyOf({ contextWindow: 1000, pressureTokens: 0 })
+  assert.equal(zero.available, true)
+  assert.equal(zero.percent, 0)
+  assert.equal(zero.remainingTokens, 1000)
 })
 
 test('occupancyOf computes percent, remaining and overflow', () => {

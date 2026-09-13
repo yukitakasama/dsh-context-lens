@@ -141,6 +141,33 @@ async function checkClientSource() {
     .filter(text => /^\s*export\s+default\s/m.test(text))
   check(defaultExports.length === 0, 'no export default in either half')
 
+  // The stylesheet may only name design tokens, never a literal color and
+  // never an invented custom property. `--dsh-scrollbar-*` is the one
+  // documented indirection layer (ui-theme scrollbar.css rebinds it to
+  // --dsw-alias-scrollbar-*), so it is allowed by name.
+  const styleEntry = Object.entries(sources).find(([file]) => file.endsWith('styles.cjs'))
+  if (styleEntry !== undefined) {
+    const css = styleEntry[1]
+    const properties = [...css.matchAll(/--([a-z0-9-]+)\s*:/g)].map(m => m[1])
+    const foreign = properties
+      .filter(name => !name.startsWith('dsw-') && !name.startsWith('dsh-scrollbar-'))
+    check(foreign.length === 0, 'stylesheet declares only design tokens', [...new Set(foreign)].join(', '))
+
+    // Every var() reference must be a token we just verified, or a property
+    // this same sheet declares (a local binding).
+    const referenced = [...css.matchAll(/var\((--[a-z0-9-]+)/g)].map(m => m[1].slice(2))
+    const declared = new Set(properties)
+    const unknown = referenced.filter(name => !name.startsWith('dsw-') && !declared.has(name))
+    check(unknown.length === 0, 'every var() reference is a design token or a local binding',
+      [...new Set(unknown)].join(', '))
+
+    // An elevated surface takes elevation INSTEAD of a border; pairing them
+    // double-draws the edge (docs/web-styling.md).
+    const elevated = css.match(/[^{}]*box-shadow:var\(--dsw-elevation[^{}]*\}/g) ?? []
+    const paired = elevated.filter(rule => /[^-]border(-(top|right|bottom|left))?:\s*(?!0[;\s}])/.test(rule))
+    check(paired.length === 0, 'elevated surfaces do not also draw a border', paired[0]?.slice(0, 60))
+  }
+
   return sources
 }
 
