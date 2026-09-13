@@ -142,7 +142,7 @@ profile。所有可选能力（`sessions`、`sidebarRightTabs`、`settings`、`t
 ```sh
 node scripts/build.mjs                # 构建两个半体到 lib/
 node scripts/check.mjs                # 22 条 manifest / 合规断言
-node --test "tests/*.spec.mjs"        # 64 个测试
+node --test "tests/*.spec.mjs"        # 78 个测试
 ```
 
 `scripts/check.mjs` 强制那些类型检查管不到的规则：禁止 `default` 导出（会静默丢掉

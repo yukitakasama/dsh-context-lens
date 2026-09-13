@@ -51,6 +51,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `SECURITY.md` documenting the route fence and the install-time trust boundary.
 - Degradation-matrix tests: each optional capability removed in turn, asserting
   the remaining seats still register.
+- External-module contract test: every bare `require()` in the built bundle is
+  checked against the **running shell's** actual seed table (extracted from
+  `dsh-web-frontend@0.1.5-rc.1/dist`), so a specifier that would throw in the
+  browser fails the suite instead.
+
+### Corrected — platform baseline
+- The rc.1 shell's real seed table is the nine baseline modules only, and it
+  contains **no** `@deepseek-ai/dsh-client-runtime/client` specifier; the 40
+  installed client bundles in the live GUI require none either. The earlier
+  working-tree note that rc.1 preloaded a runtime external does not hold for the
+  **running** build, so the bundle relies on the baseline table alone. This is
+  now pinned by a test rather than asserted in prose.
 
 ### Added — P7 发布材料
 - `README.md`, this changelog, `LICENSE` (MIT).

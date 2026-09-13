@@ -166,7 +166,7 @@ Full matrix, degradation tiers, and reproducible verification commands live in
 ```sh
 node scripts/build.mjs                # build both halves into lib/
 node scripts/check.mjs                # 22 manifest/compliance assertions
-node --test "tests/*.spec.mjs"        # 64 tests
+node --test "tests/*.spec.mjs"        # 78 tests
 ```
 
 `scripts/check.mjs` enforces the rules a type checker cannot: no `default`
