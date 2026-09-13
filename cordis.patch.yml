@@ -1,0 +1,8 @@
+# dsh bundle layer: mount the context-lens plugin.
+#
+# The row names the package (not a relative path) so Node resolution finds the
+# installed code. The host half declares no web-only service, so a TUI profile
+# can load this row without ever reaching PENDING (see D:\DSH\AGENTS.md).
+- insert:
+    - id: context-lens
+      name: dsh-context-lens

@@ -1,0 +1,16 @@
+# Build output — produced by `node scripts/build.mjs`, never edited by hand.
+lib/
+
+# Dependencies
+node_modules/
+pnpm-lock.yaml
+package-lock.json
+
+# Local test scaffolds
+.tmp/
+*.tgz
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.log
