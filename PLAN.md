@@ -292,7 +292,7 @@ dsh-context-lens/
 | `tokenMeter.measure()` 是 O(surface) 且逐 revision 采样可能昂贵 | 长会话下宿主 CPU 抖动 | 采样节流 + 结果缓存 + 上限（Config 字段）；只对当前选中的 session 采样；超限截断并显式上报 truncated |
 | rc.2 之后官方可能改动私有槽位/投影 | 升级即碎 | 只依赖**已文档化**的槽位与投影键；能力探测 + 分级降级；在 CI 里对 rc.1/rc.2 双版本跑装载测试 |
 | 自建宿主路由引入安全面 | 本机浏览器任意页面可探测 | 精确路由 + peer socket loopback 围栏 + 非 GET 405 + 不返回敏感内容（只返回 token 计数） |
-| 浮窗面板与官方 ContextMeter 视觉竞争 | 信息重复、界面变脏 | 官方 meter 保留；我们的精简仪表走 `conversation.input.right` **追加**（新 list id），默认只显示官方没有的信息（余量+归因入口） |
+| 浮窗面板与官方 ContextMeter 视觉竞争 | 信息重复、界面变脏 | 官方 meter 保留不动；**不**再往 `conversation.input.right` 追加精简仪表（原计划如此，见 A6）—— 已经用浮窗面板 + 可停靠页两处呈现，第三处只会视觉重复 |
 | 社区同类插件已有 10+ | 定位被淹没 | 差异化在 §3.3；README 首段直接讲清「不是用量账本」 |
 
 ---
@@ -306,6 +306,24 @@ dsh-context-lens/
 | D3 | 首发分发 | **tarball + GitHub 直装**（免 npm 2FA 流程，与你上一个插件 `dsh-wsl-preset` 的结论一致） | 追加 npm 公开发布 |
 
 > 未确认前 P0 可以照常进行；D2 影响 P4 是否启动，D3 只影响 P7。
+
+**当前实现状态**：D2 建议的范围（做到 P4）已**超额完成到 P6**（含可停靠页与设置项）；
+D3 仍未决，因此 npm 与 GitHub 直装**未实装**，tarball 路径已实测通过。
+
+---
+
+## 7.1 实施期决策记录（改变方案的决定）
+
+> 与 TASKS.md「决策记录」同源。这里只留**改变 PLAN 原文**的那几条；逐条细节与证据见 TASKS.md。
+
+| # | 决策 | 理由 | 影响面 |
+|---|---|---|---|
+| A6 | **放弃** `conversation.input.right` 精简仪表（PLAN §6 原计划要追加） | 该 seat 是 session scope；已有浮窗面板 + 可停靠页两处呈现，第三处只会与官方 ContextMeter 视觉重复 | P5 |
+| A7 | 平台契约以**发布 tag `1ef9c1fa9a`（rc.1）**为准，不以本机检出树为准 | 本机 `deepseek-harness` 检出树带发布后提交 `be531688f3`，`platform.ts` 与 `client/runtime/*` 领先于发布；按检出树写会与运行版不符。实测运行版 seed table 就是九个基线模块，**无** runtime 预载 | 全部阶段 |
+| A8 | 面板**自行绑定投影**（`ctx.sessions.binding(id).session.projections.faceOf(key)` + inject `hooks` 舱），**不用** `useProjection` | `sidebar.footer.action` 是 **root** scope，而 `useProjection` 是 **session** scope 的**组件 prop**、根本不是可 require 的模块。这是该座位取到会话数据的唯一合规路径（同官方 `ui-goal`） | P1、P3 |
+| A9 | 客户端源码用 `.cjs`；构建为零依赖手写装配器 | `"type": "module"` 下 `.js` 会被当 ESM 解析而 `exports` 未定义；`.cjs` 同时让 `node --test` 能直接 require。官方 `tsdown.client.ts` 预设未对第三方发布 | P1–P7 |
+| A10 | 样式注入沿用官方 `data-plugin` / `data-plugin-css` 标签约定 | 官方 `styleInjectionModule` 用该约定做样式盘点与 HMR 移除；自创命名会让 HMR 管不到 | P3 |
+| A11 | 时间线采**边界事件驱动**采样，且 payload 恒报 `coverage: 'observed-since-plugin-load'` | `measure()` 无 revision 参数、只读当前 durable tail，**历史无法事后回放**。与其暗示完整，不如显式标注部分覆盖 | P4 |
 
 ---
 

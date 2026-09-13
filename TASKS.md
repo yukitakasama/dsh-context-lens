@@ -267,6 +267,7 @@
 | A8 | 2026-09-13 | 面板**自行绑定投影**（`ctx.sessions.binding(id).session.projections.faceOf(key)` + inject `hooks` 舱），不用 `useProjection` | `sidebar.footer.action` 是 **root** scope，而 `useProjection` 是 **session** scope 的组件 prop、根本不是可 require 的模块。这是该座位取到会话数据的唯一合规路径（同官方 `ui-goal`） | P1、P3 |
 | A9 | 2026-09-13 | 客户端源码用 `.cjs`，构建为零依赖手写装配器 | `"type": "module"` 下 `.js` 会被当 ESM 解析而 `exports` 未定义；`.cjs` 同时让 `node --test` 能直接 require。官方 `tsdown.client.ts` 预设未对第三方发布 | P1–P7 |
 | A10 | 2026-09-13 | 样式注入沿用官方 `data-plugin` / `data-plugin-css` 标签约定 | 官方 `styleInjectionModule` 用该约定做样式盘点与 HMR 移除；自创命名会让 HMR 管不到 | P3 |
+| A11 | 2026-09-13 | 时间线采**边界事件驱动**采样，payload 恒报 `coverage: 'observed-since-plugin-load'` | `measure()` 无 revision 参数、只读当前 durable tail，历史**无法事后回放**；与其暗示完整，不如显式标注部分覆盖 | P4 |
 |  |  | D1 插件名 |  |  |
 |  |  | D2 v1 范围 |  |  |
 |  |  | D3 首发分发 |  |  |
