@@ -105,6 +105,9 @@ const CSS = `
 .cl_menuItem:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .cl_menuItem:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:-2px}
 
+.cl_bodyPane{padding:12px 14px 14px;overflow-y:auto;height:100%}
+.cl_tabTitle{color:var(--dsw-alias-label-secondary);font-size:12px;line-height:18px;white-space:nowrap}
+
 @media (prefers-reduced-motion: reduce){
 .cl_ringFill{transition:none}
 }

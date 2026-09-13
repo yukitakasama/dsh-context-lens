@@ -165,13 +165,18 @@ test('apply registers the dictionary and the footer action', async () => {
   const fake = createFakeContext()
   exports.apply(fake.ctx)
 
-  assert.deepEqual(fake.injections, ['sidebar.footer.action'], 'injects only the footer seat')
-  assert.equal(fake.slotRegistrations.length, 1, 'registers exactly one cell')
+  assert.deepEqual(
+    fake.injections,
+    ['sidebar.footer.action', 'settings.section'],
+    'injects the footer seat and the settings section',
+  )
+  assert.equal(fake.slotRegistrations.length, 2, 'registers exactly two cells')
 
   const { definition } = fake.slotRegistrations[0]
   assert.equal(definition.name, 'sidebar.footer.action')
   assert.equal(definition.id, 'context-lens', 'a FRESH list id: the official meter is not touched')
   assert.equal(definition.locale, 'contextLens', 'declares its locale namespace')
+  assert.equal(fake.slotRegistrations[1].definition.name, 'settings.section')
 
   const dict = fake.dictionaries[0]
   assert.equal(dict.ns, 'contextLens')
@@ -199,15 +204,20 @@ test('apply still loads when the session controller is absent', async () => {
   const fake = createFakeContext({ withSessions: false })
   // Must not throw: a missing capability degrades this view, not the load.
   exports.apply(fake.ctx)
-  assert.equal(fake.slotRegistrations.length, 0, 'no seat without a session controller')
-  assert.equal(fake.dictionaries.length, 1, 'but the dictionary still registers')
+  // The session-dependent footer seat is skipped; the settings section does
+  // not depend on a session, so it still registers. The point is that apply
+  // completes without throwing.
+  const names = fake.slotRegistrations.map(entry => entry.definition.name)
+  assert.ok(!names.includes('sidebar.footer.action'), 'no session seat without a session controller')
+  assert.equal(fake.dictionaries.length, 1, 'the dictionary still registers')
 })
 
 test('the inject face exposes a hooks compartment with a stable observable', async () => {
   const { exports } = await materializeBundle()
   const fake = createFakeContext()
   exports.apply(fake.ctx)
-  const { definition, Component } = fake.slotRegistrations[0]
+  const { definition, Component } = fake.slotRegistrations
+    .find(entry => entry.definition.name === 'sidebar.footer.action')
   assert.equal(typeof Component, 'function', 'a component is registered')
 
   const face = definition.inject()
