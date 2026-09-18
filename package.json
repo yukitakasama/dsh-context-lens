@@ -4,6 +4,14 @@
   "description": "Single-session context anatomy for the DeepSeek Harness Web GUI: attribution, headroom planning, and a context x trajectory timeline — not another usage ledger.",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yukitakasama/dsh-context-lens.git"
+  },
+  "homepage": "https://github.com/yukitakasama/dsh-context-lens#readme",
+  "bugs": {
+    "url": "https://github.com/yukitakasama/dsh-context-lens/issues"
+  },
   "engines": {
     "node": ">=22.19"
   },
