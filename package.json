@@ -1,6 +1,6 @@
 {
   "name": "dsh-context-lens",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Single-session context anatomy for the DeepSeek Harness Web GUI: attribution, headroom planning, and a context x trajectory timeline — not another usage ledger.",
   "type": "module",
   "license": "MIT",

@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-09-18
+
+Docs-and-manifest release: **no plugin behaviour changed since 0.1.0.**
+The manifest version now matches the tag (0.1.0 was still stamped at v0.1.1).
+
 ### Verified — dsh 0.1.5-rc.2
 - Ran the dual-version matrix: installed `@deepseek-ai/dsh@0.1.5-rc.2` into a scratch
   directory, used **its own CLI** to derive a profile, and loaded this plugin's
