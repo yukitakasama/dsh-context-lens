@@ -138,7 +138,7 @@ root 座位**永远拿不到** `useProjection`，且它也不是可 require 的�
 | B8 | 可选服务一律 `ctx.get(name)` | `index.cjs`、`tab.cjs`、`host/index.js` | ✅ |
 | B9 | 可调项全进 `Config` 并校验 | `src/host/config.js`（5 项，含范围） | ✅ `host.spec.mjs` |
 | B10 | 非法 Config **加载期抛错** | `validateConfig` 抛错，含未知键 | ✅ `host.spec.mjs` |
-| B11 | 分发三态（npm / tarball / GitHub + allowBuilds） | `README.md` §Install | ✅ 文档齐；⬜ 实装待发布 |
+| B11 | 分发三态（npm / tarball / GitHub + allowBuilds） | `README.md` §Install | 🟡 tarball ✅ / GitHub 直装 ✅ / npm ⬜ 待发布 |
 | C1 | `ctx.slots.inject(key, () => ctx.slots.register(...))` | `index.cjs`、`tab.cjs` | ✅ |
 | C2 | 逐个确认槽位 cardinality / scope | 本文 §3 | ✅ |
 | C3 | 组件只吃 share，组件文件不出现 `ctx` | `views/panel.cjs`、`tab.cjs` 等 | ✅ |
@@ -246,6 +246,35 @@ dsh --profile <自定义名> --dump-config | grep -A2 '^# == dsh-context-lens'
 | 非 web 激活 | 真实 cordis `Context` 直载 | ✅ 仅 recorder effect，不抛错 |
 | 外部模块契约 | 从**运行版**前端 bundle 提取 seed table 比对 | ✅ 仅需 `react`；九项基线表 |
 | 数值一致性 | 重写官方公式逐值比对 | ✅ 一致，**并抓出 2 个真实缺陷**（已修） |
+| GitHub 安装 | 公开仓库 → `github:` URL 装进全新 profile | ✅ 端到端通过（含 `allowBuilds` 放行与 `prepack` 构建） |
 | rc.2 装载矩阵 | — | ⬜ 待验证（rc.2 未装到本机） |
 | 浏览器渲染 / 截图 | — | ⬜ 待人工 |
-| 三路安装实装 | — | ⬜ 待发布决策（D3） |
+| npm 安装 | — | ⬜ 待 npm 发布（D3） |
+
+---
+
+## 10. GitHub 直装：实测配方与一处易错点
+
+仓库已发布：**https://github.com/yukitakasama/dsh-context-lens**（公开，topic 含 `dsh-plugin`）。
+
+```sh
+dsh plugin --profile <名> add github:yukitakasama/dsh-context-lens
+```
+
+**首次安装会失败**，报 `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED`。这是**预期行为**，
+不是缺陷：git 安装取到的是源码而非构建产物（`lib/` 在 `.gitignore` 里），所以本包带
+`prepare` 脚本要在用户机器上真实构建，而 pnpm ≥ 10 默认拒绝执行 git 依赖的构建脚本。
+
+**易错点**：要抄进 `pnpm-workspace.yaml` 的键**不是裸包名**，而是 pnpm 打印的那一整行，
+它带**已解析的 commit SHA**：
+
+```yaml
+allowBuilds:
+  dsh-context-lens@git+https://github.com/yukitakasama/dsh-context-lens.git#<resolved-sha>: true
+```
+
+用裸包名 `dsh-context-lens: true` **不生效**，会继续报同一个错。
+
+之后 `pnpm install` 输出 `npm-run-prepack: Done`，`lib/` 在 profile 的 `node_modules`
+里被构建出来，`--dump-config` 随即解析出 `# == dsh-context-lens` 层（第 540–542 行）。
+安全含义：该放行键自带 SHA，等于内建了版本钉住。

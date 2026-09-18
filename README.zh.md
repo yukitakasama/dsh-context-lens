@@ -42,25 +42,37 @@ dsh plugin --profile web add dsh-context-lens
 # 从 tarball（已构建产物）
 pnpm pack           # 产出 dsh-context-lens-0.1.0.tgz
 dsh plugin --profile web add ./dsh-context-lens-0.1.0.tgz
+
+# 直接从 GitHub（安装时从源码构建）
+dsh plugin --profile web add github:yukitakasama/dsh-context-lens
 ```
 
 ### 从 GitHub 直装（源码安装）
 
 git 安装取到的是**源码，不是构建产物**，因此本包带 `prepare` 脚本，安装时从源码
-构建 `lib/`。pnpm ≥ 10 在显式放行前拒绝执行 git 依赖的 `prepare`，所以第一次
-`add` 会失败；把 pnpm 打印的那个包名键抄进 profile 的 `pnpm-workspace.yaml`：
+构建 `lib/`。pnpm ≥ 10 在显式放行前拒绝执行 git 依赖的 `prepare`，第一次安装会报
+`ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED`。pnpm 会打印它要的**完整**键 —— 请把那一行
+原样抄进 profile 的 `pnpm-workspace.yaml`。它不是单纯的包名，而是带着已解析的
+commit，所以「pin」是内建的：
 
 ```yaml
 allowBuilds:
-  dsh-context-lens: true
+  dsh-context-lens@git+https://github.com/yukitakasama/dsh-context-lens.git#<resolved-sha>: true
 ```
 
-然后重新 `add`。**请把这个放行理解为「允许该包在安装时在你的机器上执行代码」。**
-建议 pin 到具体 commit，避免之后一次 push 悄悄换掉要跑的代码：
+然后重跑安装。**请把这个放行理解为「允许该包在安装时在你的机器上执行代码」。**
+之所以需要它，只是因为构建是真构建 —— git 里没有提交任何预构建产物。
+
+已在 dsh `0.1.5-rc.1` 上端到端验证：放行键存在时，`pnpm install` 会执行
+`prepack`、构建 `lib/`，随后 profile 正常解析出 `# == dsh-context-lens` 层。
+
+想自己 pin 到某个版本：
 
 ```sh
-dsh plugin --profile web add github:<owner>/dsh-context-lens#<sha>
+dsh plugin --profile web add github:yukitakasama/dsh-context-lens#<sha>
 ```
+
+如果你 fork 了仓库，把账号名换成你自己的。
 
 ### 构建要求
 

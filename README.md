@@ -54,27 +54,40 @@ dsh plugin --profile web add dsh-context-lens
 # From a tarball (prebuilt)
 pnpm pack           # produces dsh-context-lens-0.1.0.tgz
 dsh plugin --profile web add ./dsh-context-lens-0.1.0.tgz
+
+# Straight from GitHub (builds from source on install)
+dsh plugin --profile web add github:yukitakasama/dsh-context-lens
 ```
 
 ### From GitHub (source install)
 
 A git install fetches **sources, not built artifacts**, so the package ships a
 `prepare` script that builds `lib/` from source. pnpm ≥ 10 refuses to run a git
-dependency's `prepare` until you allow it, so the first `add` fails; copy the
-exact package key pnpm prints into the profile's `pnpm-workspace.yaml`:
+dependency's `prepare` until you allow it, so the first install fails with
+`ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED`. pnpm prints the **exact** key it wants —
+copy that line verbatim into the profile's `pnpm-workspace.yaml`. It is not just
+the package name; it carries the resolved commit, so the pin is built in:
 
 ```yaml
 allowBuilds:
-  dsh-context-lens: true
+  dsh-context-lens@git+https://github.com/yukitakasama/dsh-context-lens.git#<resolved-sha>: true
 ```
 
-Then re-run the `add`. **Treat that allowance as permission to execute this
-package's code on your machine at install time.** Pin a commit so a later push
-cannot silently change what runs:
+Then re-run the install. **Treat that allowance as permission to execute this
+package's code on your machine at install time.** It is only required because
+the build is real — nothing prebuilt is committed to git.
+
+Verified end to end on dsh `0.1.5-rc.1`: with that key present, `pnpm install`
+runs `prepack`, builds `lib/`, and the profile then resolves the
+`# == dsh-context-lens` layer.
+
+To pin a specific revision yourself:
 
 ```sh
-dsh plugin --profile web add github:<owner>/dsh-context-lens#<sha>
+dsh plugin --profile web add github:yukitakasama/dsh-context-lens#<sha>
 ```
+
+Substitute your own account name if you forked the repository.
 
 ### Build requirements
 

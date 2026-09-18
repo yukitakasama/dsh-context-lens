@@ -322,7 +322,8 @@
 | P6 | 导出断网可用 | 代码路径审查：Blob + 对象 URL，无 fetch/XHR | ✅ 可证；浏览器手测待人工 | `src/client/model/report.cjs` | 2026-09-13 |
 | P7 | tarball 安装路径 | `npm pack` → 装进全新 profile → `--dump-config` | ✅ 输出 `# == dsh-context-lens` 层，无 error / 无 pending；tarball 自足（含 `lib/`） | `D:\DSH\_plugintest\pack-home` | 2026-09-13 |
 | P7 | 打包内容审查 | `npm pack --dry-run` | ✅ 14 文件 / 47.8 kB；含 `lib/`、`cordis.patch.yml`、`docs/`、两份 README、CHANGELOG、SECURITY、LICENSE | `/tmp/cl-pack/` | 2026-09-13 |
-| P7 | npm / GitHub 安装路径 | — | ⬜ 待仓库与 D3 决策 | — | — |
+| P7 | GitHub 安装路径 | 仓库推到公开 GitHub → 从 `github:` URL 装进全新 profile → `--dump-config` | ✅ **端到端通过**：先报 `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED` → 按 pnpm 打印的**完整**键（含已解析 SHA，非裸包名）加 `allowBuilds` → `pnpm install` 执行 `prepack` 构建 `lib/` → 解析出 `# == dsh-context-lens` 层 | `github.com/yukitakasama/dsh-context-lens` | 2026-09-18 |
+| P7 | npm 安装路径 | — | ⬜ 待 npm 发布（D3） | — | — |
 
 ---
 
