@@ -3,7 +3,7 @@
 > **配套文档**：[PLAN.md](../PLAN.md)（计划 / 架构 / 规范来源）、[TASKS.md](../TASKS.md)（进度与证据台账）
 > **本文件职责**：一份事实一个家 —— PLAN.md 拥有**计划**，本文件拥有**已实测的兼容性事实**。
 >
-> 最后更新：2026-09-13 ｜ 实测者环境：WSL2 + Windows 侧 dsh `0.1.5-rc.1`
+> 最后更新：2026-09-18 ｜ 实测者环境：WSL2 + Windows 侧 dsh `0.1.5-rc.1`
 
 本文件只写**已经跑过的命令与观察到的结果**。未验证的一律标 ⬜ 待验证，绝不写成已通过。
 
@@ -177,6 +177,11 @@ node --test "tests/*.spec.mjs"    # 78 tests / 78 pass / 0 fail
   这三条样式断言已**逐条反向验证**：人为注入违规必然 FAIL。
 - **`node --test`** —— 模型层纯函数（含敌意输入）、与官方公式的**逐值一致性**、
   宿主围栏的对抗性用例、降级矩阵、外部模块契约。
+  套件在 **Windows 与 Linux 上均已跑通 `78 tests / 78 pass / 0 fail`**（Windows
+  node `v24.15.0`、WSL2 node `v22.23.1`）。两个 spec 用 `pathToFileURL()` 动态
+  import 被测模块 —— 直接传 `resolve()` 的 Windows 原生路径会被 ESM loader 当成
+  `d:` scheme 拒绝（`ERR_UNSUPPORTED_ESM_URL_SCHEME`），且是**模块加载期抛错**，
+  整文件 36 个用例全部丢失。修好前 Windows 上的结果是 `44 tests / 42 pass / 2 fail`。
 
 ### 装载 / 卸载实测配方（已实跑）
 
@@ -239,7 +244,7 @@ dsh --profile <自定义名> --dump-config | grep -A2 '^# == dsh-context-lens'
 |---|---|---|
 | 构建 | `node scripts/build.mjs` | ✅ 宿主 4 模块 / 客户端 11 模块 |
 | 合规 | `node scripts/check.mjs` | ✅ 25 passed, 0 failed |
-| 单测 | `node --test "tests/*.spec.mjs"` | ✅ 78 passed, 0 failed |
+| 单测 | `node --test "tests/*.spec.mjs"` | ✅ 78 passed, 0 failed（Windows `v24.15.0` 与 WSL2 `v22.23.1` 双平台） |
 | 装载 | 自定义 profile + `--dump-config` | ✅ 出现 `# == dsh-context-lens` 层 |
 | 卸载无残留 | 移除依赖后重跑 | ✅ 计数 = 0 |
 | 非 web 安全 | headless profile + `--dump-config` | ✅ 出层，无 pending |

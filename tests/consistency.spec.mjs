@@ -16,10 +16,10 @@
 import assert from 'node:assert/strict'
 import { dirname, resolve } from 'node:path'
 import { test } from 'node:test'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const model = await import(resolve(root, 'src/client/model/index.cjs'))
+const model = await import(pathToFileURL(resolve(root, 'src/client/model/index.cjs')).href)
 
 /**
  * The official `contextOccupancy`, copied verbatim from the harness.
