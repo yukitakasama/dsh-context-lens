@@ -6,6 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — the suite now runs on Windows
+- `tests/host.spec.mjs` and `tests/consistency.spec.mjs` passed a native path to
+  `await import()`. The ESM loader read the `D:` of `D:\...` as a URL scheme and
+  threw `ERR_UNSUPPORTED_ESM_URL_SCHEME` at **module-load time**, so every test in
+  both files was lost rather than one: Windows reported `44 tests / 42 pass / 2 fail`
+  and the whole loopback-fence adversarial suite silently did not run. Both files
+  now build a file URL with `pathToFileURL()`. Verified `78 tests / 78 pass / 0 fail`
+  on Windows (`v24.15.0`) and unchanged on Linux (`v22.23.1`). Closes #1.
+- `README.md`, `README.zh.md` and `docs/COMPATIBILITY.md` now state that the build
+  is a **prerequisite for the tests**: `lib/` is gitignored, `host.spec.mjs` imports
+  the host half from it, and the bundle/degradation/externals specs read
+  `lib/client.js`, so `node --test` on a fresh clone loses 27 of the 78 tests until
+  `node scripts/build.mjs` has run.
+
 ## [0.1.1] — 2026-09-18
 
 Docs-and-manifest release: **no plugin behaviour changed since 0.1.0.**

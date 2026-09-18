@@ -104,6 +104,12 @@ node --test "tests/*.spec.mjs"
 lazy-CJS bundle format, because the harness's `clientBundle()` preset is not
 published for third-party packages.
 
+`lib/` is gitignored and the suite reads the built artifacts, so **the build is
+a prerequisite for the tests**: `host.spec.mjs` imports the host half from
+`lib/`, and the bundle, degradation and externals specs read `lib/client.js`.
+On a fresh clone, running `node --test` before `node scripts/build.mjs` loses 27
+of the 78 tests.
+
 ---
 
 ## Configuration
@@ -178,7 +184,7 @@ Full matrix, degradation tiers, and reproducible verification commands live in
 ## Development
 
 ```sh
-node scripts/build.mjs                # build both halves into lib/
+node scripts/build.mjs                # build both halves into lib/ — do this first
 node scripts/check.mjs                # 22 manifest/compliance assertions
 node --test "tests/*.spec.mjs"        # 78 tests
 ```

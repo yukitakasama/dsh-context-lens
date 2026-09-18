@@ -13,14 +13,14 @@
 import assert from 'node:assert/strict'
 import { dirname, resolve } from 'node:path'
 import { test } from 'node:test'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
-const fence = await import(resolve(root, 'lib/host/fence.js'))
-const config = await import(resolve(root, 'lib/host/config.js'))
-const timeline = await import(resolve(root, 'lib/host/timeline.js'))
-const host = await import(resolve(root, 'lib/index.js'))
+const fence = await import(pathToFileURL(resolve(root, 'lib/host/fence.js')).href)
+const config = await import(pathToFileURL(resolve(root, 'lib/host/config.js')).href)
+const timeline = await import(pathToFileURL(resolve(root, 'lib/host/timeline.js')).href)
+const host = await import(pathToFileURL(resolve(root, 'lib/index.js')).href)
 
 // ---------------------------------------------------------------------------
 // config

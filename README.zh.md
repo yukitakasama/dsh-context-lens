@@ -87,6 +87,11 @@ node --test "tests/*.spec.mjs"
 `scripts/build.mjs` 零依赖，手写复刻官方 lazy-CJS bundle 格式 —— 因为官方
 `clientBundle()` 预设并未对第三方包发布。
 
+`lib/` 被 gitignore，而测试套件读的是构建产物，因此**必须先构建再测试**：
+`host.spec.mjs` 从 `lib/` 导入宿主半，bundle / degradation / externals 三个 spec
+读 `lib/client.js`。在全新 clone 上先跑 `node --test` 而不先跑
+`node scripts/build.mjs`，78 个测试里会丢掉 27 个。
+
 ---
 
 ## 配置
@@ -153,7 +158,7 @@ profile。所有可选能力（`sessions`、`sidebarRightTabs`、`settings`、`t
 ## 开发
 
 ```sh
-node scripts/build.mjs                # 构建两个半体到 lib/
+node scripts/build.mjs                # 先跑这个：构建两个半体到 lib/
 node scripts/check.mjs                # 22 条 manifest / 合规断言
 node --test "tests/*.spec.mjs"        # 78 个测试
 ```
