@@ -282,7 +282,7 @@
 | K2 | 待确认 | `conversation.view` ring 是否对第三方开放注册 | P8 前置条件；未确认则不做 |
 | K3 | 观察 | `tokenMeter.measure()` 为 O(surface)，逐 revision 采样在长会话可能昂贵 | 节流 + 缓存 + 上限（Config）+ 超限显式上报 |
 | K4 | 已解决 | WSL 内无外网，`web_fetch` 对 github 报 private IP | 改用 `powershell.exe` 走 Windows 侧网络拉取 |
-| K5 | 阻塞 | **rc.2 未装到本机**，无法跑 rc.2 装载/渲染矩阵（P6 双版本硬证据缺一半） | 需 D3 决策后安装 rc.2；当前以「只声明 rc.1 已验证」如实标注，不外推 |
+| K5 | 已解决 | ~~rc.2 未装到本机~~ → 已从 npm 装进临时目录并跑通装载矩阵（九项基线表、三个槽位、四个投影键、tokenMeter 全部仍在）；**渲染验证仍缺**（GUI 有鉴权门） | `docs/COMPATIBILITY.md` §11；残留 `D:\DSH\_plugintest\rc2*` 仅供复跑 |
 | K6 | 已解决 | `--profile web` 是**内置模板**，`--dump-config` 会忽略临时 `DSH_HOME`，导致早先的装载验证全是假阴性 | 必须用**自定义** profile 名（`--profile <新名> --from-default-profile web`） |
 | K7 | 已解决 | WSL 下 `DSH_HOME` 传不进 Windows 侧 node 进程 | 需 `WSLENV=DSH_HOME`，或在同一条 `powershell.exe -Command` 内 `\$env:DSH_HOME=...` 设置 |
 | K8 | 已解决 | WSL 的 `ln -s` 对 Windows node 不可解析（`cannot resolve profile bundle`） | 改用 PowerShell `New-Item -ItemType Junction` |
@@ -316,7 +316,8 @@
 | P4 | 路由错误路径 | 403 / 405 / 400 / 404 / 503 / 截断 | ✅ 全覆盖 | `tests/host.spec.mjs` | 2026-09-13 |
 | P4 | 未新增模型可见内容 | 审查宿主半无事件写入 | ✅ 宿主半只读，无 session 事件写入 | `src/host/` | 2026-09-13 |
 | P6 | 降级矩阵 L0–L4 | 逐项摘除能力 | ✅ 7 条，缺一不影响其余 | `tests/degrade.spec.mjs` | 2026-09-13 |
-| P6 | 双版本矩阵 | rc.1 + rc.2 | 🟡 **rc.1 ✅ / rc.2 ⬜**（rc.2 未装到本机，见 K5） | — | 2026-09-13 |
+| P6 | 双版本矩阵 | rc.1 + rc.2
+（rc.2 从 npm 装入临时目录，用它自己的 CLI 派生 profile） | ✅ **两端都装载通过**：九项基线 seed table 完全相同、三个槽位与四个投影键仍在、无 runtime 预载 | `docs/COMPATIBILITY.md` §11；`D:\DSH\_plugintest\rc2` | 2026-09-18 |
 | P6 | 非 web profile 安全（红线） | 装入 headless profile + `--dump-config` | ✅ 正常出层、无 pending、无 missing service | 临时 `DSH_HOME=D:\DSH\_plugintest\tui-home`，profile `hltest` | 2026-09-13 |
 | P6 | 非 web 激活（更强证据） | 真实 cordis `Context` 直载宿主半，无 `webServer` / 无 `tokenMeter` | ✅ 仅注册 `context-lens: timeline recorder`，`inject = undefined`，不抛错 | `/tmp/loadtest.mjs` | 2026-09-13 |
 | P6 | 导出断网可用 | 代码路径审查：Blob + 对象 URL，无 fetch/XHR | ✅ 可证；浏览器手测待人工 | `src/client/model/report.cjs` | 2026-09-13 |

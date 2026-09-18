@@ -162,8 +162,9 @@ host token meter ─┘
 
 ## Compatibility
 
-Verified against **dsh 0.1.5-rc.1** on the Web GUI. Declares **no required
-service**, which is deliberate: depending on `webServer` would strand the plugin
+Verified against **dsh 0.1.5-rc.1** and **0.1.5-rc.2** — the same build loads in
+both, whose baseline module table, projection keys and slots are unchanged.
+Declares **no required service**, which is deliberate: depending on `webServer` would strand the plugin
 in `PENDING` in a TUI profile and stall the entire profile. Every optional
 capability (`sessions`, `sidebarRightTabs`, `settings`, `tokenMeter`,
 `webServer`) is probed with `ctx.get`, so a missing one disables exactly one

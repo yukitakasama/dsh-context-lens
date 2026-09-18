@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Verified — dsh 0.1.5-rc.2
+- Ran the dual-version matrix: installed `@deepseek-ai/dsh@0.1.5-rc.2` into a scratch
+  directory, used **its own CLI** to derive a profile, and loaded this plugin's
+  rc.1 build into it. The `# == dsh-context-lens` layer resolves with no error and
+  no pending.
+- rc.2's baseline seed table is the **same nine modules** as rc.1 (with `react` as
+  an unquoted minified key), contains **no** `dsh-client-runtime/client` preload,
+  and still provides the four projection keys, the `tokenMeter` service, and all
+  three slots this plugin registers into.
+- Remaining gap: neither version has browser rendering verified — the GUI is
+  auth-gated and cannot be inspected from a fresh browser context.
+
 ### Added — P0 规范对齐与立项
 - `PLAN.md` and `TASKS.md`: the frozen official-spec baseline (B1–B11, C1–C10,
   H1–H3), the L0–L4 degradation ladder, and the per-stage acceptance criteria.

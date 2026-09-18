@@ -13,8 +13,8 @@
 
 | 版本 | 位置 | 状态 |
 |---|---|---|
-| dsh `0.1.5-rc.1` | 本机运行版（Launcher home `...\in.dsh-plug.dsh-launcher\homes\0.1.5-rc.1`） | ✅ **主目标，本文件全部实测均针对它** |
-| dsh `0.1.5-rc.2` | GitHub `deepseek-ai/DeepSeek-Harness@master` | ⬜ 未装到本机，**未跑装载矩阵** |
+| dsh `0.1.5-rc.1` | 本机运行版（Launcher home `...\in.dsh-plug.dsh-launcher\homes\0.1.5-rc.1`） | ✅ **主目标，全部实测针对它** |
+| dsh `0.1.5-rc.2` | npm `@deepseek-ai/dsh@0.1.5-rc.2` 装进临时目录（`D:\DSH\_plugintest\rc2`） | ✅ **装载矩阵已跑通**（见 §11） |
 | dsh `0.1.2-alpha.1` | `D:\DSH\deepseek-harness-dev` | ❌ **不是目标**，仅作存在性交叉验证 |
 
 ### ⚠️ 关于本机 `D:\DSH\deepseek-harness` 检出树
@@ -224,7 +224,7 @@ dsh --profile <自定义名> --dump-config | grep -A2 '^# == dsh-context-lens'
 
 | # | 风险 | 处置 / 现状 |
 |---|---|---|
-| R1 | rc.2 可能移动槽位或投影 | 只依赖已文档化的 key；能力一律探测；分级降级（§5）。⬜ rc.2 未实测（K5） |
+| R1 | rc.2 可能移动槽位或投影 | ✅ **已实测**：rc.2 的九项基线表、三个槽位、四个投影键与 tokenMeter 均未变（§11）。仍只依赖已文档化的 key，能力一律探测，分级降级（§5） |
 | R2 | `measure()` 为 O(surface) | 仅边界事件采样 + `maxSamples` 上限 + 超限上报 `truncated`，绝不逐 revision |
 | R3 | 时间线只覆盖插件加载后的事件 | payload 恒带 `coverage: 'observed-since-plugin-load'`，UI 明确标注「部分覆盖」，绝不暗示完整 |
 | R4 | `conversation.view` 对第三方是否开放**未确认** | 前置条件不满足，**不实现**；PLAN P8 标注 |
@@ -247,7 +247,7 @@ dsh --profile <自定义名> --dump-config | grep -A2 '^# == dsh-context-lens'
 | 外部模块契约 | 从**运行版**前端 bundle 提取 seed table 比对 | ✅ 仅需 `react`；九项基线表 |
 | 数值一致性 | 重写官方公式逐值比对 | ✅ 一致，**并抓出 2 个真实缺陷**（已修） |
 | GitHub 安装 | 公开仓库 → `github:` URL 装进全新 profile | ✅ 端到端通过（含 `allowBuilds` 放行与 `prepack` 构建） |
-| rc.2 装载矩阵 | — | ⬜ 待验证（rc.2 未装到本机） |
+| rc.2 装载矩阵 | npm 装 rc.2 → 其 CLI 派生 profile → 装载 | ✅ 通过（§11） |
 | 浏览器渲染 / 截图 | — | ⬜ 待人工 |
 | npm 安装 | — | ⬜ 待 npm 发布（D3） |
 
@@ -278,3 +278,30 @@ allowBuilds:
 之后 `pnpm install` 输出 `npm-run-prepack: Done`，`lib/` 在 profile 的 `node_modules`
 里被构建出来，`--dump-config` 随即解析出 `# == dsh-context-lens` 层（第 540–542 行）。
 安全含义：该放行键自带 SHA，等于内建了版本钉住。
+
+---
+
+## 11. 双版本矩阵（rc.1 + rc.2，均已跑通）
+
+rc.2 **已实测**：`npm install @deepseek-ai/dsh@0.1.5-rc.2` 装进临时目录，用它**自己的 CLI**
+派生一个自定义 profile，把本插件以依赖 + bundle 行装进去，再 `--dump-config`。
+
+| 检查项 | rc.1 | rc.2 | 结论 |
+|---|---|---|---|
+| 本插件装载（`# == dsh-context-lens` 出层） | ✅ | ✅ **无 error、无 pending** | 同一份构建产物两端都装得上 |
+| 基线 seed table 九项 | ✅ | ✅ **完全相同** | 外部模块契约未变 |
+| 是否出现 `dsh-client-runtime/client` 预载 | ❌ 无 | ❌ 无 | 第三方便携包本就不该请求它 |
+| `contextPressure` / `contextBreakdown` / `tokenUsage` | ✅ | ✅ 仍注册 | 占用率与构成不受影响 |
+| `sessionStats` | ✅ | ✅ 仍在 `dsh-session-stats` | 面板头部概览不受影响 |
+| 槽位 `sidebar.footer.action` | ✅ | ✅ 4 个文件引用 | 页脚动作座位仍在 |
+| 槽位 `sidebar.right.pane.tab` | ✅ | ✅ 16 个文件引用 | 可停靠页座位仍在 |
+| 槽位 `settings.section` | ✅ | ✅ 23 个文件引用 | 设置分区座位仍在 |
+| 服务 `tokenMeter` | ✅ | ✅ 仍提供 | 宿主时间线采样不受影响 |
+
+**说明**：rc.2 的逐字 seed table 为
+`{react:ec,"react/jsx-runtime":ic,"react-dom":cc,"react-dom/client":fc,"@deepseek-ai/cordis":Ha,"@deepseek-ai/dsh-client-store":Hc,"@deepseek-ai/dsh-client-ui-slots":Ac,"@deepseek-ai/dsh-client-ui-primitives":Zg,"@deepseek-ai/dsh-client-ui-dockkit":Ey}`
+—— 九项与 rc.1 一致（`react` 在压缩产物中是不带引号的键）。rc.2 前端 bundle 中
+`dsh-client-runtime/client` 出现 **0** 次。
+
+**仍未涵盖**：两端都只验证到「装载 + 契约」，**没有**在任一版本上验证浏览器内的实际渲染
+（见 §8 R6：GUI 有鉴权门，无法从新的浏览器上下文检视）。

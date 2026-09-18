@@ -140,7 +140,8 @@ node --test "tests/*.spec.mjs"
 
 ## 兼容性
 
-已在 **dsh 0.1.5-rc.1** 的 Web GUI 上验证。宿主半**不声明任何必需服务**，这是有意
+已在 **dsh 0.1.5-rc.1** 与 **0.1.5-rc.2** 上验证 —— 同一份构建产物两端都能装载，
+两版的基线模块表、投影键与槽位均未变。宿主半**不声明任何必需服务**，这是有意
 的设计：依赖 `webServer` 会让插件在 TUI profile 里永远停在 `PENDING`，进而拖死整个
 profile。所有可选能力（`sessions`、`sidebarRightTabs`、`settings`、`tokenMeter`、
 `webServer`）都用 `ctx.get` 探测，缺一个只关掉一个座位。
