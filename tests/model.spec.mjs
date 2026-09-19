@@ -274,6 +274,42 @@ test('timelineOf folds samples and marks reclaims', () => {
   assert.equal(timeline.coverage, 'observed-since-plugin-load')
 })
 
+test('timelineOf preserves the anchor of every sample', () => {
+  // The host stamps `measurement.baseline.kind` on each sample. This fold is
+  // the only hop between that payload and the badge, so dropping the field here
+  // is what pinned every session to "no anchor" regardless of the real basis.
+  const timeline = model.timelineOf({
+    ok: true,
+    samples: [
+      { totalTokens: 1_000, baselineKind: 'usage' },
+      { totalTokens: 2_000, baselineKind: 'estimated' },
+    ],
+  })
+  assert.equal(timeline.samples[0].baselineKind, 'usage')
+  assert.equal(timeline.samples[1].baselineKind, 'estimated')
+
+  // An absent or malformed anchor is the third state, not a crash.
+  const junk = model.timelineOf({
+    ok: true,
+    samples: [{ totalTokens: 5 }, { totalTokens: 6, baselineKind: 7 }],
+  })
+  assert.equal(junk.samples[0].baselineKind, 'none')
+  assert.equal(junk.samples[1].baselineKind, 'none')
+})
+
+test('newestBaselineKind reads the last sample only', () => {
+  const folded = model.timelineOf({
+    ok: true,
+    samples: [
+      { totalTokens: 1_000, baselineKind: 'usage' },
+      { totalTokens: 2_000, baselineKind: 'estimated' },
+    ],
+  })
+  assert.equal(model.newestBaselineKind(folded), 'estimated', 'the newest sample wins')
+  assert.equal(model.newestBaselineKind({ samples: [] }), undefined, 'no sample, no anchor')
+  assert.equal(model.newestBaselineKind(undefined), undefined, 'a missing series is not fatal')
+})
+
 test('timelineOf degrades on a failed or absent payload', () => {
   assert.equal(model.timelineOf(undefined).available, false)
   assert.equal(model.timelineOf(null).available, false)
@@ -311,6 +347,52 @@ test('buildViewModel assembles the whole model from partial input', () => {
   assert.equal(full.headroom.rate, 20_000)
   assert.equal(full.stats.turns, 3)
   assert.equal(full.stats.steps, 9)
+})
+
+test('buildViewModel derives the badge from the newest sample, not from an input nobody sets', () => {
+  // The regression this pins: `buildViewModel` used to read `input.baselineKind`,
+  // which no caller ever supplies (the four projection keys carry no anchor), so
+  // the badge fell through to "no anchor" for every session — including one the
+  // host had measured against a provider-reported usage anchor.
+  const usage = model.buildViewModel({
+    hasSession: true,
+    pressure: { contextWindow: 100_000, pressureTokens: 25_000 },
+    timeline: {
+      ok: true,
+      coverage: 'observed-since-plugin-load',
+      samples: [
+        { totalTokens: 10_000, baselineKind: 'estimated' },
+        { totalTokens: 25_000, baselineKind: 'usage' },
+      ],
+    },
+  })
+  assert.equal(usage.provenance.kind, 'usage')
+  assert.equal(usage.provenance.key, 'provenance.reported')
+
+  // The newest sample decides: an older usage anchor followed by a heuristic
+  // measurement reports the heuristic, which is what the figure now rests on.
+  const estimated = model.buildViewModel({
+    hasSession: true,
+    pressure: { contextWindow: 100_000, pressureTokens: 25_000 },
+    timeline: {
+      ok: true,
+      samples: [
+        { totalTokens: 25_000, baselineKind: 'usage' },
+        { totalTokens: 30_000, baselineKind: 'estimated' },
+      ],
+    },
+  })
+  assert.equal(estimated.provenance.kind, 'estimated')
+  assert.equal(estimated.provenance.key, 'provenance.estimated')
+
+  // No sampled point means no anchor to name; the third branch stays reachable
+  // and is not replaced by a guess.
+  const unsampled = model.buildViewModel({
+    hasSession: true,
+    pressure: { contextWindow: 100_000, pressureTokens: 25_000 },
+  })
+  assert.equal(unsampled.provenance.kind, 'none')
+  assert.equal(unsampled.provenance.key, 'provenance.none')
 })
 
 test('buildViewModel is total: an empty input yields a coherent model', () => {

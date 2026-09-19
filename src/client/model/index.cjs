@@ -207,7 +207,8 @@ function cacheOf(usage) {
  * Describe where the occupancy figure came from.
  *
  * @param occupancy - result of {@link occupancyOf}.
- * @param baselineKind - the `baseline.kind` of the newest measurement.
+ * @param baselineKind - the `baseline.kind` of the newest measurement, or
+ *   undefined when the host half is not mounted and no sample exists.
  * @returns a provenance model naming the anchor.
  */
 function provenanceOf(occupancy, baselineKind) {
@@ -219,6 +220,23 @@ function provenanceOf(occupancy, baselineKind) {
       ? 'provenance.reported'
       : kind === 'estimated' ? 'provenance.estimated' : 'provenance.none',
   }
+}
+
+/**
+ * Read the anchor of the newest sample in a folded timeline.
+ *
+ * The occupancy figure and this sample are contemporaneous, which is what
+ * makes the newest one — and not some other point — the honest answer to
+ * "where did this number come from". A session with no sampled point at all
+ * has no anchor to name, and returns undefined rather than guessing one.
+ *
+ * @param timeline - result of {@link timelineOf}.
+ * @returns the newest sample's `baselineKind`, or undefined without samples.
+ */
+function newestBaselineKind(timeline) {
+  const samples = Array.isArray(timeline?.samples) ? timeline.samples : []
+  if (samples.length === 0) return undefined
+  return samples[samples.length - 1].baselineKind
 }
 
 /**
@@ -248,6 +266,10 @@ function timelineOf(payload) {
       deltaTokens: typeof sample.deltaTokens === 'number' ? sample.deltaTokens : 0,
       kind: typeof sample.kind === 'string' ? sample.kind : 'flat',
       eventType: typeof sample.eventType === 'string' ? sample.eventType : '',
+      // The anchor this sample was measured against. Preserved rather than
+      // consumed here: provenance is decided once, from the NEWEST sample, and
+      // dropping it on this hop is what left the badge stuck on "no anchor".
+      baselineKind: typeof sample.baselineKind === 'string' ? sample.baselineKind : 'none',
       turn: sample.turn,
       step: sample.step,
       reclaimed: typeof sample.deltaTokens === 'number' && sample.deltaTokens < 0
@@ -284,7 +306,9 @@ function buildViewModel(input) {
     cache,
     timeline,
     headroom: headroomOf(occupancy, timeline.samples, input.paceWindow ?? 10),
-    provenance: provenanceOf(occupancy, input.baselineKind),
+    // The anchor rides the timeline payload: the projection keys carry no
+    // baseline, so the newest sample is the only contemporaneous witness.
+    provenance: provenanceOf(occupancy, newestBaselineKind(timeline)),
     stats: {
       turns: tokens(input.stats?.turns),
       steps: tokens(input.stats?.steps),
@@ -299,5 +323,6 @@ exports.compositionOf = compositionOf
 exports.headroomOf = headroomOf
 exports.cacheOf = cacheOf
 exports.provenanceOf = provenanceOf
+exports.newestBaselineKind = newestBaselineKind
 exports.timelineOf = timelineOf
 exports.buildViewModel = buildViewModel

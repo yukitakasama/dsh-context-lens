@@ -247,6 +247,7 @@
 | 2026-09-13 | P6 | **红线实测**：装进 headless（非 web）profile → `--dump-config` 正常出层、无 pending；再经真实 cordis `Context` 直载，无 `webServer`/`tokenMeter` 时仅注册 recorder effect，不抛错 | 见 §6 台账 |
 | 2026-09-13 | P6 | `check.mjs` 增加 3 条样式断言（仅 token 自定义属性 / 每个 `var()` 可解析 / elevation 不叠 border），并**逐条反向验证**（注入违规必 FAIL） | `scripts/check.mjs` |
 | 2026-09-13 | P7 | README（en/zh）、CHANGELOG、SECURITY、LICENSE | 仓库根目录 |
+| 2026-09-18 | P8 | **修复口径徽标恒显「无锚点」**（issue #2）：链路两处断点 —— ① `timelineOf` 折叠每个采样点时丢掉了宿主已采到的 `baselineKind`；② `buildViewModel` 从 `input.baselineKind` 取锚点，而四个投影键里根本没有该字段，无人会传。现改为折叠时**保留**每个点的锚点，并由 `newestBaselineKind` 取**最新采样点**（与占用率同期的那个）判定。回归断言覆盖 usage / estimated / 无采样三态 | `src/client/model/index.cjs`；`tests/model.spec.mjs` |
 |  |  |  |  |
 
 ---

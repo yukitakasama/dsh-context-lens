@@ -6,6 +6,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — the measurement-basis badge
+- The **"Measurement basis" badge rendered `provenance.none` / "No anchor" for
+  every session**, including ones the host had measured against a
+  provider-reported anchor. `provenanceOf` has three branches and both
+  dictionaries carry copy for all three, but the value selecting between them
+  never reached the model — a broken chain in two places. `timelineOf` dropped
+  the `baselineKind` the host samples onto every point, and `buildViewModel`
+  read it from `input.baselineKind`, which no caller sets (the four projection
+  keys carry no anchor at all). `timelineOf` now preserves the field, and
+  `buildViewModel` takes it from the **newest sample** — the one contemporaneous
+  with the occupancy figure — through the new `newestBaselineKind` helper.
+  `provenance.reported` and `provenance.estimated` are reachable again; the
+  third branch still reports a session with no sampled point. Closes #2.
+- `tests/model.spec.mjs` pins the chain at both hops: the fold keeps each
+  sample's anchor (and coerces an absent or malformed one to `none`), the
+  newest sample decides, and an end-to-end `buildViewModel` case asserts the
+  three branches. Verified `81 tests / 81 pass / 0 fail`.
+
 ### Fixed — the suite now runs on Windows
 - `tests/host.spec.mjs` and `tests/consistency.spec.mjs` passed a native path to
   `await import()`. The ESM loader read the `D:` of `D:\...` as a URL scheme and
