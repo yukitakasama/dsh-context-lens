@@ -30,6 +30,12 @@ const { toMarkdown, toJson, reportFilename } = require('../model/report.cjs')
  * The whole path is local: the document is built in memory and handed to an
  * object URL, so nothing leaves the machine and the export works offline.
  *
+ * The revoke is deferred by one task on purpose. `anchor.click()` only STARTS
+ * the navigation; the browser reads the blob on a later task, so revoking in
+ * the same synchronous block can cancel the download before it begins — and
+ * because nothing throws, the failure is silent. Deferring keeps the URL
+ * resolvable until the browser has taken the data.
+ *
  * @param text - the document text.
  * @param filename - the suggested filename.
  */
@@ -42,7 +48,7 @@ function download(text, filename) {
   document.body.appendChild(anchor)
   anchor.click()
   anchor.remove()
-  URL.revokeObjectURL(url)
+  setTimeout(() => URL.revokeObjectURL(url), 0)
 }
 
 /**
@@ -226,7 +232,7 @@ function ContextLensPanel(props) {
     }
   }, [open, close])
 
-  // Clear the transient "exported" notice.
+  // Clear the transient export notice.
   useEffect(() => {
     if (notice === undefined) return undefined
     const timer = setTimeout(() => setNotice(undefined), 1600)
@@ -245,9 +251,9 @@ function ContextLensPanel(props) {
       } else {
         download(toMarkdown(model, t, meta), reportFilename(meta.sessionId, 'md', meta.generatedAt))
       }
-      setNotice(t('action.copied'))
+      setNotice(t('action.exported'))
     } catch {
-      setNotice(t('action.copyFailed'))
+      setNotice(t('action.exportFailed'))
     }
   }, [model, snapshot.sessionId, t])
 

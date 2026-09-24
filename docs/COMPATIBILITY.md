@@ -234,7 +234,7 @@ dsh --profile <自定义名> --dump-config | grep -A2 '^# == dsh-context-lens'
 | R3 | 时间线只覆盖插件加载后的事件 | payload 恒带 `coverage: 'observed-since-plugin-load'`，UI 明确标注「部分覆盖」，绝不暗示完整 |
 | R4 | `conversation.view` 对第三方是否开放**未确认** | 前置条件不满足，**不实现**；PLAN P8 标注 |
 | R5 | 四个投影的字段并非同一时刻的原子观测 | 口径徽标标明「供应商实报 / 启发式估算」，并声明「切换模型时压力与容量可能不同源」。**锚点本身不在投影键里**：它由宿主采样器写在每个时间线采样点上，客户端取**最新采样点**判定（`newestBaselineKind`）；宿主半未挂载（无采样）时如实报第三态「无锚点」，不猜测 |
-| R6 | 浏览器实际渲染、键盘焦点、深浅色**无头环境无法代验** | 一律标 ⬜ 待人工；**不在本文件声称已渲染** |
+| R6 | 浏览器实际渲染、键盘焦点、深浅色**无头环境无法代验** | **导出路径**已在真实 Chromium 中代验（§12）：真 React、真下载、真 `fetch()` 探测。**其余**（完整 GUI 外壳、键盘焦点、深浅色）仍标 ⬜ 待人工；**不在本文件声称已在正式 GUI 内渲染** |
 
 ---
 
@@ -244,7 +244,7 @@ dsh --profile <自定义名> --dump-config | grep -A2 '^# == dsh-context-lens'
 |---|---|---|
 | 构建 | `node scripts/build.mjs` | ✅ 宿主 4 模块 / 客户端 11 模块 |
 | 合规 | `node scripts/check.mjs` | ✅ 25 passed, 0 failed |
-| 单测 | `node --test "tests/*.spec.mjs"` | ✅ 78 passed, 0 failed（Windows `v24.15.0` 与 WSL2 `v22.23.1` 双平台） |
+| 单测 | `node --test "tests/*.spec.mjs"` | ✅ 85 passed, 0 failed（Windows `v24.15.0` 与 WSL2 `v22.23.1` 双平台） |
 | 装载 | 自定义 profile + `--dump-config` | ✅ 出现 `# == dsh-context-lens` 层 |
 | 卸载无残留 | 移除依赖后重跑 | ✅ 计数 = 0 |
 | 非 web 安全 | headless profile + `--dump-config` | ✅ 出层，无 pending |
@@ -253,7 +253,8 @@ dsh --profile <自定义名> --dump-config | grep -A2 '^# == dsh-context-lens'
 | 数值一致性 | 重写官方公式逐值比对 | ✅ 一致，**并抓出 2 个真实缺陷**（已修） |
 | GitHub 安装 | 公开仓库 → `github:` URL 装进全新 profile | ✅ 端到端通过（含 `allowBuilds` 放行与 `prepack` 构建） |
 | rc.2 装载矩阵 | npm 装 rc.2 → 其 CLI 派生 profile → 装载 | ✅ 通过（§11） |
-| 浏览器渲染 / 截图 | — | ⬜ 待人工 |
+| 浏览器渲染 / 截图 | — | ⬜ 待人工（**导出路径除外**，见 §12） |
+| 导出路径（真实浏览器） | Chromium + 真 React 18.3.1 + 真下载 | ✅ Markdown 888 B / JSON 1332 B 均落盘；同任务 blob 探测修复前 `TypeError`、修复后 HTTP 200（§12） |
 | npm 安装 | — | ⬜ 待 npm 发布（D3） |
 
 ---
@@ -310,3 +311,47 @@ rc.2 **已实测**：`npm install @deepseek-ai/dsh@0.1.5-rc.2` 装进临时目�
 
 **仍未涵盖**：两端都只验证到「装载 + 契约」，**没有**在任一版本上验证浏览器内的实际渲染
 （见 §8 R6：GUI 有鉴权门，无法从新的浏览器上下文检视）。
+
+---
+
+## 12. 导出路径：真实浏览器实测（issue #16）
+
+这一节补的是 §8 R6 里除「正式 GUI 外壳接入」之外唯一能在本机代验的部分：**导出按钮从点击到文件落盘的整条链路**。
+配方独立于 DSH 外壳，不需要登录鉴权门。
+
+### 配方
+
+1. 用仓库里已构建好的 `lib/client.js`（真实产物，不是重写的 fixture）。
+2. 页面按 shell 的契约喂它：真的 `window.__ModuleLoader__`、真的 React 18.3.1 / ReactDOM 18.3.1
+   （取自本机 harness 的 `node_modules` UMD 构建），`require` 表按九项基线表实现。
+3. 一个带真实会话与真实投影值的 cordis context：`contextPressure` / `contextBreakdown` /
+   `tokenUsage` / `sessionStats` 四个 `faceOf().getSnapshot()` 都有值，时间线路由返回 404（走
+   「不可用」降级分支）。`sidebar.footer.action` 的 `inject()` 返回 `hooks.contextLens` 可观察对象，
+   页面用 `useState` + `useEffect` 把它绑成 `useContextLens`（正是 renderer 做的事）。
+4. Chromium 里渲染面板 → 点触发器 → 点导出图标 → 点菜单项 → **Playwright 真下载**并 `saveAs` 落盘。
+
+### 两种变体对照
+
+把同一份 `lib/client.js` 的**唯一一行**还原成修复前的形式（`URL.revokeObjectURL(url)` 紧贴
+`anchor.click()`），得到 pre-fix 变体，其余字节完全相同。每一变体都跑 Markdown 与 JSON 两次。
+
+| 观测 | pre-fix | 修复后 |
+|---|---|---|
+| 点击后同任务内 `fetch(blobUrl)` | ❌ `TypeError`（URL 已失效） | ✅ HTTP **200**，读到完整 888 B |
+| `revoke` 发生在 `click` 之后 | 0–0.3 ms（同一任务） | 1.3–4.7 ms（下一个任务） |
+| `download()` 返回时 `revoke` 次数 | 1 | **0** |
+| 浏览器下载事件 | ✅ 落盘 | ✅ 落盘 |
+| 下载内容 | Markdown 888 B / JSON 1332 B，`session-1`、占用率 41%、`200K` | 同上，逐字节一致（仅时间戳不同） |
+| 成功提示文案 | `Report saved` | `Report saved` |
+| 控制台报错 | `net::ERR_FILE_NOT_FOUND`（blob 被提前回收） | 无（仅 favicon 404） |
+
+关键点：**同任务探测是确定性的**——它在点击处理函数返回的同一个宏任务里立刻 `fetch` 那个 blob URL。
+pre-fix 必然 `TypeError`，修复后必然 200。这正是 issue 描述的机制，而不是靠「本机浏览器碰巧没失败」推断。
+
+### 边界
+
+- 这验证的是**导出链路**（按钮 → 菜单 → 下载 → 内容），不是 DSH 正式 GUI 外壳里的整体渲染；
+  外壳接入、键盘焦点、深浅色仍待人工（§8 R6）。
+- 修复前的下载在**本机 Chromium 上并未丢文件**（新版本对 blob 的读取足够快）。所以本节的结论不是
+  「复现了一次丢文件」，而是「**修复前的写法可被证明有失效窗口，修复后该窗口消失**」——与 issue 的定性一致。
+- 复跑脚本与页面未入库（临时脚手架，见 §7 的 `.tmp/` 惯例）。
