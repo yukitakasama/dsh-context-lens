@@ -40,8 +40,8 @@ GUI 已经给了一个上下文百分比和一个轨迹视图，但它们回答�
 dsh plugin --profile web add dsh-context-lens
 
 # 从 tarball（已构建产物）
-pnpm pack           # 产出 dsh-context-lens-0.1.0.tgz
-dsh plugin --profile web add ./dsh-context-lens-0.1.0.tgz
+pnpm pack           # 产物名带清单版本号，以它实际打印的名字为准
+dsh plugin --profile web add ./dsh-context-lens-<version>.tgz
 
 # 直接从 GitHub（安装时从源码构建）
 dsh plugin --profile web add github:yukitakasama/dsh-context-lens
@@ -90,7 +90,8 @@ node --test "tests/*.spec.mjs"
 `lib/` 被 gitignore，而测试套件读的是构建产物，因此**必须先构建再测试**：
 `host.spec.mjs` 从 `lib/` 导入宿主半，bundle / degradation / externals 三个 spec
 读 `lib/client.js`。在全新 clone 上先跑 `node --test` 而不先跑
-`node scripts/build.mjs`，78 个测试里会丢掉 27 个。
+`node scripts/build.mjs` 是跑不过的：`host.spec.mjs` 直接加载不到被测模块，
+而读 `lib/client.js` 的几个 spec 会随之一起失败。
 
 ---
 
@@ -158,9 +159,12 @@ profile。所有可选能力（`sessions`、`sidebarRightTabs`、`settings`、`t
 
 ```sh
 node scripts/build.mjs                # 先跑这个：构建两个半体到 lib/
-node scripts/check.mjs                # 22 条 manifest / 合规断言
-node --test "tests/*.spec.mjs"        # 78 个测试
+node scripts/check.mjs                # manifest / 合规断言
+node --test "tests/*.spec.mjs"        # 测试
 ```
+
+两条命令各自打印自己的总数，因此上面不手写份数 —— 写进散文的数字就会漂移。
+这些数字由 `tests/docs.spec.mjs` 对着文档断言。
 
 `scripts/check.mjs` 强制那些类型检查管不到的规则：禁止 `default` 导出（会静默丢掉
 `inject`）、禁止字面色值、禁止宿主半出现裸运行时 import、宿主半不得声明服务。

@@ -14,14 +14,19 @@
 
 import { readFile, readdir, stat } from 'node:fs/promises'
 import { dirname, join, relative, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
-/** Collected failures; a non-empty list exits non-zero. */
-const failures = []
-/** Collected successes, printed for the evidence ledger. */
-const passes = []
+/**
+ * The assertion sink for the current run.
+ *
+ * It lives in a module-level binding rather than a parameter so each of the
+ * assertion sites keeps its one-line shape, and `collectChecks()` is the only
+ * thing that installs one — so a run can be repeated and its labels read back
+ * by a test instead of being counted by reading this file.
+ */
+let sink = { passes: [], failures: [] }
 
 /**
  * Record one assertion.
@@ -30,8 +35,8 @@ const passes = []
  * @param detail - optional explanation printed on failure.
  */
 function check(ok, label, detail) {
-  if (ok) passes.push(label)
-  else failures.push(detail === undefined ? label : `${label} — ${detail}`)
+  if (ok) sink.passes.push(label)
+  else sink.failures.push(detail === undefined ? label : `${label} — ${detail}`)
 }
 
 /** Read and parse a JSON file. */
@@ -179,7 +184,7 @@ async function checkHostDiscipline() {
   const injectMatch = /export const inject = \[([^\]]*)\]/.exec(text)
   if (injectMatch === null) {
     // Absent `inject` is the strongest form of the rule.
-    passes.push('host half declares no inject at all')
+    sink.passes.push('host half declares no inject at all')
     return
   }
   const declared = injectMatch[1].split(',').map(s => s.trim().replace(/['"]/g, '')).filter(Boolean)
@@ -187,17 +192,39 @@ async function checkHostDiscipline() {
   check(!text.includes("inject = ['webServer'"), 'host half does not require webServer')
 }
 
-async function main() {
-  const pkg = await readJson(join(root, 'package.json'))
+/**
+ * Run every assertion against the current tree and return what it collected.
+ *
+ * Importable: the module installs no sink and runs no check until this is
+ * called, so a test can read the real assertion count instead of counting
+ * `check(` sites in this file — which is exactly the number that drifted out
+ * of the docs. Calling it twice is safe; each call gets a fresh sink.
+ *
+ * @returns the assertion labels, split by outcome.
+ */
+export async function collectChecks() {
+  const collected = { passes: [], failures: [] }
+  const previous = sink
+  sink = collected
+  try {
+    const pkg = await readJson(join(root, 'package.json'))
 
-  if (!(await exists(join(root, 'lib')))) {
-    failures.push('lib/ is missing — run `node scripts/build.mjs` first')
-  } else {
-    await checkArtifacts(pkg)
+    if (!(await exists(join(root, 'lib')))) {
+      collected.failures.push('lib/ is missing — run `node scripts/build.mjs` first')
+    } else {
+      await checkArtifacts(pkg)
+    }
+    await checkManifests(pkg)
+    await checkClientSource()
+    await checkHostDiscipline()
+  } finally {
+    sink = previous
   }
-  await checkManifests(pkg)
-  await checkClientSource()
-  await checkHostDiscipline()
+  return collected
+}
+
+async function main() {
+  const { passes, failures } = await collectChecks()
 
   for (const line of passes) process.stdout.write(`ok   ${line}\n`)
   for (const line of failures) process.stdout.write(`FAIL ${line}\n`)
@@ -205,4 +232,7 @@ async function main() {
   if (failures.length > 0) process.exitCode = 1
 }
 
-await main()
+// Only run when invoked as the entry point; importing it must stay side-free.
+if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  await main()
+}

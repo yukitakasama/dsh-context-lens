@@ -3,7 +3,7 @@
 > **配套文档**：[PLAN.md](../PLAN.md)（计划 / 架构 / 规范来源）、[TASKS.md](../TASKS.md)（进度与证据台账）
 > **本文件职责**：一份事实一个家 —— PLAN.md 拥有**计划**，本文件拥有**已实测的兼容性事实**。
 >
-> 最后更新：2026-09-18 ｜ 实测者环境：WSL2 + Windows 侧 dsh `0.1.5-rc.1`
+> 最后更新：2026-09-24 ｜ 实测者环境：Windows 侧 dsh `0.1.5-rc.1`（node `v24.15.0`）
 
 本文件只写**已经跑过的命令与观察到的结果**。未验证的一律标 ⬜ 待验证，绝不写成已通过。
 
@@ -80,7 +80,7 @@
 | 页脚动作位 | `ui-sidebar` | 槽位 `sidebar.footer.action`：kind `list`、scope **`root`**、owner `{ wide: boolean }` | 面板入口，**新 list id = `context-lens`** | ✅ |
 | 右侧栏 tab | `ui-sidebar-right` | `ctx.sidebarRightTabs.register(def)` + keyed 槽位 `sidebar.right.pane.tab` / `.title`，scope `session` | 可停靠页 | ✅ |
 | 设置分区 | `ui-settings` | 槽位 `settings.section`：kind `list`、scope `root` | 可调项卡片 | ✅ |
-| 文案 | `@deepseek-ai/dsh-client-locale` | `ctx.locale.register(NS, { zh, en })`，组件经 prop `t` 取用 | zh / en 各 90 键 | ✅ |
+| 文案 | `@deepseek-ai/dsh-client-locale` | `ctx.locale.register(NS, { zh, en })`，组件经 prop `t` 取用 | zh / en 各 88 键（键集相等有断言）；本次实测其中 **83** 键被引用、5 键无人引用（死键清理见 issue #12） | ✅ |
 | 样式注入 | 构建期惯例 | `data-plugin` / `data-plugin-css` 标签约定 | 沿用以让 HMR 可盘点/移除 | ✅ |
 
 **关于 `measure()` 的代价**：官方文档明确其为 **O(surface)**（每次调用克隆位置节点集），
@@ -143,7 +143,7 @@ root 座位**永远拿不到** `useProjection`，且它也不是可 require 的�
 | C2 | 逐个确认槽位 cardinality / scope | 本文 §3 | ✅ |
 | C3 | 组件只吃 share，组件文件不出现 `ctx` | `views/panel.cjs`、`tab.cjs` 等 | ✅ |
 | C4 | 无运行期跨特性插件 import | 只 require 内部模块 + `react` | ✅ `externals.spec.mjs` |
-| C5 | 全部文案进 typed locale 字典 | 90 键 ×2，键集相等有断言 | ✅ `bundle.spec.mjs` |
+| C5 | 全部文案进 typed locale 字典 | 88 键 ×2，键集相等有断言（份数由 `tests/docs.spec.mjs` 对着本文件断言） | ✅ `bundle.spec.mjs` |
 | C6 | 只用 `--dsw-*` token；中性边框 0.5px；elevation 不叠 border | `styles.cjs` | ✅ 三条断言 + **反向验证** |
 | C7 | 无模块级副作用 | 插件体内只**定义**函数；注射发生在 `apply` 内 | ✅ |
 | C8 | 「改客户端代码必须重建 bundle」写进 README | `README.md` §Build requirements | ✅ |
@@ -157,12 +157,13 @@ root 座位**永远拿不到** `useProjection`，且它也不是可 require 的�
 
 ## 7. 可复跑验证命令
 
-测试运行于 Node ≥ 22（实测 `v22.23.1`）。
+测试运行于 Node ≥ 22（本次复跑：Windows node `v24.15.0`）。
 
 ```sh
 node scripts/build.mjs            # 产出 lib/index.js（宿主 4 模块）+ lib/client.js（客户端 11 模块）
-node scripts/check.mjs            # 25 条 manifest / 合规断言 → 25 passed, 0 failed
-node --test "tests/*.spec.mjs"    # 78 tests / 78 pass / 0 fail
+node scripts/check.mjs            # manifest / 合规断言 → 25 passed, 0 failed
+node --test "tests/*.spec.mjs"    # 全套件 → 93 tests / 93 pass / 0 fail（Windows v24.15.0）
+                                  # 条数与份数由 tests/docs.spec.mjs 对着本文档断言
 ```
 
 各命令断言的内容：
@@ -177,11 +178,15 @@ node --test "tests/*.spec.mjs"    # 78 tests / 78 pass / 0 fail
   这三条样式断言已**逐条反向验证**：人为注入违规必然 FAIL。
 - **`node --test`** —— 模型层纯函数（含敌意输入）、与官方公式的**逐值一致性**、
   宿主围栏的对抗性用例、降级矩阵、外部模块契约。
-  套件在 **Windows 与 Linux 上均已跑通 `78 tests / 78 pass / 0 fail`**（Windows
-  node `v24.15.0`、WSL2 node `v22.23.1`）。两个 spec 用 `pathToFileURL()` 动态
-  import 被测模块 —— 直接传 `resolve()` 的 Windows 原生路径会被 ESM loader 当成
-  `d:` scheme 拒绝（`ERR_UNSUPPORTED_ESM_URL_SCHEME`），且是**模块加载期抛错**，
-  整文件 36 个用例全部丢失。修好前 Windows 上的结果是 `44 tests / 42 pass / 2 fail`。
+  套件在 **Windows 上实测 `93 tests / 93 pass / 0 fail`**（node `v24.15.0`）。
+  issue #1 修复前的 Windows 结果是 `44 tests / 42 pass / 2 fail`：`host.spec.mjs`
+  与 `consistency.spec.mjs` 把 `resolve()` 的 Windows 原生路径直接交给
+  `await import()`，ESM loader 把 `D:` 当成 URL scheme 拒绝
+  （`ERR_UNSUPPORTED_ESM_URL_SCHEME`），且是**模块加载期抛错**，两个文件的用例
+  整批丢失。两文件已改用 `pathToFileURL()`（`a7b667b`）。
+  **Linux/WSL 一侧的数字本机无法复跑**（`wsl.exe` 报
+  `Wsl/Service/E_ACCESS_DENIED`），因此本文档只陈述 Windows 实测值，
+  不再转述未在本次验证中复现的 Linux 计数。
 
 ### 装载 / 卸载实测配方（已实跑）
 
@@ -243,8 +248,8 @@ dsh --profile <自定义名> --dump-config | grep -A2 '^# == dsh-context-lens'
 | 验证项 | 命令 / 操作 | 结果 |
 |---|---|---|
 | 构建 | `node scripts/build.mjs` | ✅ 宿主 4 模块 / 客户端 11 模块 |
-| 合规 | `node scripts/check.mjs` | ✅ 25 passed, 0 failed |
-| 单测 | `node --test "tests/*.spec.mjs"` | ✅ 85 passed, 0 failed（Windows `v24.15.0` 与 WSL2 `v22.23.1` 双平台） |
+| 合规 | `node scripts/check.mjs` | ✅ 25 passed, 0 failed（份数由 `tests/docs.spec.mjs` 断言） |
+| 单测 | `node --test "tests/*.spec.mjs"` | ✅ 93 passed, 0 failed（Windows `v24.15.0`，本次实测；Linux/WSL 本次不可复跑，见 §7） |
 | 装载 | 自定义 profile + `--dump-config` | ✅ 出现 `# == dsh-context-lens` 层 |
 | 卸载无残留 | 移除依赖后重跑 | ✅ 计数 = 0 |
 | 非 web 安全 | headless profile + `--dump-config` | ✅ 出层，无 pending |
