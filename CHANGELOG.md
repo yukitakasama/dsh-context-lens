@@ -6,6 +6,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — the export could silently produce no file
+- `download()` revoked the blob object URL **in the same synchronous task as
+  `anchor.click()`**. A click only *starts* the navigation; the browser reads
+  the blob on a later task, so the revoke could land first and cancel the export
+  before it began — and because nothing threw, `exportReport`'s `try/catch`
+  never fired and the user saw a success notice with no file. The revoke is now
+  deferred one task with `setTimeout(() => URL.revokeObjectURL(url), 0)`, so the
+  URL stays resolvable until the browser has taken the data. Closes #16.
+- The success/failure notices described the wrong action: both dictionaries
+  reported a file download as a clipboard copy (`action.copied` / "Copied",
+  `action.copyFailed`). The keys are now `action.exported` / `action.exportFailed`
+  — "Report saved" / "Export failed" (zh: "报告已保存" / "导出失败") — so the copy
+  names the file the user should look for.
+- `tests/panel.spec.mjs` guards the ordering against a fake DOM and object-URL
+  implementation: the URL must still be alive when `download()` returns and be
+  revoked on the next task, both dictionaries must carry the renamed keys and
+  drop the old ones, and the panel source must not mention a copy action.
+  Verified `85 tests / 85 pass / 0 fail`, `check.mjs` `25 passed, 0 failed`.
+- The export path is now **verified in a real browser** (Chromium), closing the
+  `COMPATIBILITY.md` "浏览器渲染 — ⬜ 待人工" line for this path: the built
+  `lib/client.js` was materialized against real React 18.3.1, the panel rendered,
+  and Export → Markdown and Export → JSON were driven through a genuine
+  Playwright download. Both saved the correct 888-byte Markdown / 1332-byte JSON
+  document. The same-task object-URL resolvability probe — a real `fetch()` of
+  the blob URL issued immediately after the click handler returned — **fails
+  with `TypeError` on the pre-fix bundle and returns HTTP 200 / the full payload
+  on the fixed one**.
+
 ### Fixed — the measurement-basis badge
 - The **"Measurement basis" badge rendered `provenance.none` / "No anchor" for
   every session**, including ones the host had measured against a

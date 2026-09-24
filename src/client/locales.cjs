@@ -82,8 +82,8 @@ const zh = {
   'action.export': '导出报告',
   'action.exportMarkdown': '导出为 Markdown',
   'action.exportJson': '导出为 JSON',
-  'action.copied': '已复制',
-  'action.copyFailed': '复制失败',
+  'action.exported': '报告已保存',
+  'action.exportFailed': '导出失败',
 
   'report.title': '上下文透视镜报告',
   'report.generatedAt': '生成时间',
@@ -189,8 +189,8 @@ const en = {
   'action.export': 'Export report',
   'action.exportMarkdown': 'Export as Markdown',
   'action.exportJson': 'Export as JSON',
-  'action.copied': 'Copied',
-  'action.copyFailed': 'Copy failed',
+  'action.exported': 'Report saved',
+  'action.exportFailed': 'Export failed',
 
   'report.title': 'Context Lens report',
   'report.generatedAt': 'Generated',
