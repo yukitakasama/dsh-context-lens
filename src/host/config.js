@@ -19,8 +19,6 @@ const LIMITS = {
   sampleStride: { min: 1, max: 10_000, default: 1 },
   /** Timeline sampling: hard cap on sampled points per request. */
   maxSamples: { min: 1, max: 50_000, default: 2_000 },
-  /** Timeline sampling: cap on `nodes[]` echoed per sample before truncating. */
-  maxNodesPerSample: { min: 1, max: 10_000, default: 500 },
   /** How long one cached measurement set stays valid, in milliseconds. */
   cacheTtlMs: { min: 0, max: 600_000, default: 15_000 },
   /** Estimates of remaining turns: how many recent steps to average over. */

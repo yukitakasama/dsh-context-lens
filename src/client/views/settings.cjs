@@ -22,7 +22,6 @@ const SETTINGS_NS = 'context-lens'
 const FIELDS = [
   { key: 'sampleStride', labelKey: 'settings.sampleStride', hintKey: 'settings.sampleStride.hint' },
   { key: 'maxSamples', labelKey: 'settings.maxSamples', hintKey: 'settings.maxSamples.hint' },
-  { key: 'maxNodesPerSample', labelKey: 'settings.maxNodesPerSample', hintKey: 'settings.maxNodesPerSample.hint' },
   { key: 'cacheTtlMs', labelKey: 'settings.cacheTtlMs', hintKey: 'settings.cacheTtlMs.hint' },
   { key: 'paceWindow', labelKey: 'settings.paceWindow', hintKey: 'settings.paceWindow.hint' },
 ]

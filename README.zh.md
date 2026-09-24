@@ -102,7 +102,6 @@ node --test "tests/*.spec.mjs"
 |---|---|---|---|
 | `sampleStride` | `1` | 1–10000 | 采样间隔多少个日志 revision。 |
 | `maxSamples` | `2000` | 1–50000 | 单会话采样点上限；溢出上报为 `truncated`。 |
-| `maxNodesPerSample` | `500` | 1–10000 | 每个采样点回显的 surface 节点数。 |
 | `cacheTtlMs` | `15000` | 0–600000 | 同一会话结果缓存时长。 |
 | `paceWindow` | `10` | 1–200 | 估算可支撑轮数时平均的最近步数。 |
 

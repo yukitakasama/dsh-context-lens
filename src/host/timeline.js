@@ -88,6 +88,10 @@ class SessionTrace {
       return
     }
 
+    // `measure()` clones the whole positional node set, but no client reads
+    // per-node data — only the count is a meaningful property of a sample.
+    // Echoing the array made `nodes[]` ~99% of the response body (issue #15),
+    // so it is deliberately dropped here rather than capped and shipped.
     const nodes = measurement.nodes ?? []
     const previous = this.samples.length === 0
       ? undefined
@@ -106,12 +110,6 @@ class SessionTrace {
       deltaTokens: previous === undefined ? total : total - previous,
       kind: kindOf(previous, total),
       nodeCount: nodes.length,
-      nodesTruncated: nodes.length > this.config.maxNodesPerSample,
-      nodes: nodes.slice(0, this.config.maxNodesPerSample).map(node => ({
-        seq: Number(node.seq),
-        tokens: node.tokens,
-        heuristicTokens: node.heuristicTokens,
-      })),
     })
 
     while (this.samples.length > this.config.maxSamples) {
@@ -129,7 +127,7 @@ class SessionTrace {
     return {
       ok: true,
       coverage: 'observed-since-plugin-load',
-      truncated: this.dropped > 0 || (last?.nodesTruncated ?? false),
+      truncated: this.dropped > 0,
       dropped: this.dropped,
       sampleCount: this.samples.length,
       maxSamples: this.config.maxSamples,
