@@ -248,6 +248,7 @@
 | 2026-09-13 | P6 | `check.mjs` 增加 3 条样式断言（仅 token 自定义属性 / 每个 `var()` 可解析 / elevation 不叠 border），并**逐条反向验证**（注入违规必 FAIL） | `scripts/check.mjs` |
 | 2026-09-13 | P7 | README（en/zh）、CHANGELOG、SECURITY、LICENSE | 仓库根目录 |
 | 2026-09-18 | P8 | **修复口径徽标恒显「无锚点」**（issue #2）：链路两处断点 —— ① `timelineOf` 折叠每个采样点时丢掉了宿主已采到的 `baselineKind`；② `buildViewModel` 从 `input.baselineKind` 取锚点，而四个投影键里根本没有该字段，无人会传。现改为折叠时**保留**每个点的锚点，并由 `newestBaselineKind` 取**最新采样点**（与占用率同期的那个）判定。回归断言覆盖 usage / estimated / 无采样三态 | `src/client/model/index.cjs`；`tests/model.spec.mjs` |
+| 2026-09-24 | P9 | **修复文档数字漂移**（issue #14）：README/README.zh/COMPATIBILITY 手写的 22 条断言（实为 25）、`0.1.0.tgz`（清单已 0.1.1）、78 测试（实为 87）、90 键（实为 88）全部纠正；`check.mjs` 改为导出 `collectChecks()`，断言份数由「读源码正则」变成「读一次真实运行」；新增 `tests/docs.spec.mjs` 把活体数字与文档对死，并断言 README 里**不再复述**任何会漂移的份数；`[0.1.1]` 的历史数字按新政策**加注不篡改** | `scripts/check.mjs`；`tests/docs.spec.mjs`；CHANGELOG 顶部记录该政策 |
 |  |  |  |  |
 
 ---
@@ -295,6 +296,11 @@
 ## 6. 验证证据台账
 
 > 每条证据写清：命令 / 输出摘要 / 落盘位置 / 日期。P6 靠这张表判断能否发布。
+>
+> **关于数字**：本表每行都带日期，记录的是**当时那一次**验证运行，因此行内的份数是
+> 历史事实而非当前值 —— 后续增长不回头改写。当前值只写在 `docs/COMPATIBILITY.md`，
+> 并由 `tests/docs.spec.mjs` 对着该文件断言（断言份数取自 `check.mjs` 的
+> `collectChecks()`，测试份数取自各 spec 文件）。
 
 | 阶段 | 验证项 | 命令或操作 | 结果 | 证据位置 | 日期 |
 |---|---|---|---|---|---|
@@ -326,6 +332,13 @@
 | P7 | 打包内容审查 | `npm pack --dry-run` | ✅ 14 文件 / 47.8 kB；含 `lib/`、`cordis.patch.yml`、`docs/`、两份 README、CHANGELOG、SECURITY、LICENSE | `/tmp/cl-pack/` | 2026-09-13 |
 | P7 | GitHub 安装路径 | 仓库推到公开 GitHub → 从 `github:` URL 装进全新 profile → `--dump-config` | ✅ **端到端通过**：先报 `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED` → 按 pnpm 打印的**完整**键（含已解析 SHA，非裸包名）加 `allowBuilds` → `pnpm install` 执行 `prepack` 构建 `lib/` → 解析出 `# == dsh-context-lens` 层 | `github.com/yukitakasama/dsh-context-lens` | 2026-09-18 |
 | P7 | npm 安装路径 | — | ⬜ 待 npm 发布（D3） | — | — |
+| P9 | 合规断言 | `node scripts/check.mjs` | ✅ **25 passed, 0 failed** | `scripts/check.mjs` | 2026-09-24 |
+| P9 | 全套件 | `node --test --test-isolation=none "tests/*.spec.mjs"` | ✅ **93 tests / 93 pass / 0 fail**（Windows node `v24.15.0`） | 本仓 `tests/` | 2026-09-24 |
+| P9 | 断言份数改为读真实运行 | 导入 `scripts/check.mjs` 的 `collectChecks()`（导入不装 sink、不跑断言） | ✅ 返回 `passes.length = 25`，与 CLI 输出一致 | `tests/docs.spec.mjs` | 2026-09-24 |
+| P9 | 文档守卫可失败（反向验证） | 分别人为加 1 个 `test()` / 1 条 `check()` / 1 个 locale 键，再跑 `tests/docs.spec.mjs` | ✅ 三次均 FAIL 且指名道姓（`the suite has 94` / `it reports 26` / 键集不等），移除后 6/6 复绿 | `tests/docs.spec.mjs` | 2026-09-24 |
+| P9 | 历史数字核实（不靠转述） | `git worktree` 检出 `f1c36a2`（v0.1.0）与 `4eb9c1b` 实跑 | ✅ 两处均 `25 passed, 0 failed`；`4eb9c1b` 是 v0.1.0 tag 的祖先，故 `[0.1.1]` 的「22」在打 tag 时即已不准 | `D:\DSH\tmp\verify-010` | 2026-09-24 |
+| P9 | 历史键数核实 | 从两个 tag 的 `src/client/locales.cjs` 计数 | ✅ 两处均 **90 键** —— 故 `[0.1.1]` 的「90」在 tag 上**是对的**，活的 88 是 #15 退役两个 `maxNodesPerSample*` 键所致（不篡改该行） | `git show <tag>:src/client/locales.cjs` | 2026-09-24 |
+| P9 | 无 `lib/` 时的真实行为 | 移走 `lib/` 后逐 spec 直跑 | ✅ 不是「丢掉 27 个」而是**跑不过**：`bundle` 0/6、`degrade` 0/7、`externals` 1/5、`docs` 5/6、`host` **模块加载期即失败**（0 个用例）；合计 `64 tests / 46 pass / 18 fail` | 本表；README §Build requirements | 2026-09-24 |
 
 ---
 

@@ -4,7 +4,76 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+> **A note on counts.** Every count in this file records the verification run
+> for *that* entry, at *that* commit — including entries still under
+> [Unreleased], which were written at different times and legitimately differ.
+> A figure is therefore never rewritten as the suite grows, and is
+> deliberately **not** asserted by any test: asserting a historical number would
+> only recreate the drift it records. Where a figure is known to have been wrong
+> when written, the correction is stated beside the original, not substituted
+> for it. The figures the project stands behind *today* live in
+> `docs/COMPATIBILITY.md`, and those are not hand-maintained —
+> `tests/docs.spec.mjs` reads the assertion count from `check.mjs`
+> (`collectChecks()`) and the test count from the spec files and asserts each
+> against that document, so they fail the suite when they drift.
+
 ## [Unreleased]
+
+### Fixed — documented counts are derived, not hand-copied
+- `README.md`, `README.zh.md` and `docs/COMPATIBILITY.md` quoted figures that
+  no longer matched the commands they named: the compliance suite was
+  documented as **22 assertions** (it reports **25**), the tarball as
+  `dsh-context-lens-0.1.0.tgz` (`package.json` is at **0.1.1**), the suite as
+  **78 tests** (**87** at the tree this issue describes, **93** once the new
+  `tests/docs.spec.mjs` joins it), and the dictionaries as **90 keys** (they
+  hold **88**). The repository had been contradicting itself — `COMPATIBILITY.md`
+  stated both 22 and 25 for the same command — which is the tell that none of
+  these numbers came from the tooling. Closes #14.
+- The counts are no longer maintained by hand at all. `scripts/check.mjs` now
+  exports **`collectChecks()`** — the same function its CLI runs — so the
+  assertion count can be read instead of counted from a regex over the file,
+  and importing it installs no sink and runs no check. "N assertions" was
+  never a property of the source text; it is a property of a *run*, and
+  reading it any other way is what let 22 and 25 coexist.
+- `tests/docs.spec.mjs` is new and closes the class rather than the
+  instances. It derives the live assertion count from `collectChecks()`, the
+  live test count from the `test(` declarations in the spec files, and the
+  live dictionary size from the shipped locales, then asserts each against
+  the document that quotes it. It also asserts the **absence** of a restated
+  count in both READMEs, because the fix is "quote the command, not its
+  output": a re-added number is the regression, not a new number.
+- Both READMEs now name the tarball `dsh-context-lens-<version>.tgz` and say to
+  read the name `pnpm pack` prints, so the documented filename cannot drift
+  from the manifest again.
+- The "a fresh clone loses 27 of the 78 tests" claim was also a
+  mis-description, not just a stale number: with `lib/` absent the suite does
+  not lose a subset, it **cannot pass at all** — and it reports *fewer* tests
+  than it declares, because `host.spec.mjs` fails while `await import`ing its
+  own subject, before any `test()` in it runs. Measured per file on this tree
+  with `lib/` moved aside: `bundle` 0/6, `degrade` 0/7, `externals` 1/5,
+  `host` **not loaded**, `docs` 5/6 — `64 tests / 46 pass / 18 fail` in total,
+  against 93/93 when `lib/` is present. The READMEs now describe that instead of
+  quoting "27 of 78", which no run ever produced.
+- `docs/COMPATIBILITY.md` no longer restates a Linux/WSL test count it cannot
+  re-derive on this machine (`wsl.exe` fails with
+  `Wsl/Service/E_ACCESS_DENIED`); it states the Windows figure it measured.
+  Its header, run book and evidence ledger are updated, and the C5 row and the
+  locale row now carry the measured key count.
+
+### Changed — released CHANGELOG figures are annotated, not rewritten
+- The `[0.1.1]` entry's "22 manifest and compliance assertions" is annotated
+  with the measured **25** for the tagged tree rather than edited, and the
+  count policy is now stated at the top of this file. Deciding this was part
+  of the issue: a released entry describes what a release did, so a figure
+  that was wrong when written is part of the historical record. Verified from
+  the tagged trees themselves — `v0.1.0` (`f1c36a2`) and `v0.1.1` both report
+  `25 passed, 0 failed`, because the three stylesheet assertions landed in
+  `4eb9c1b`, which is an ancestor of the `v0.1.0` tag. Its "90 keys each" is
+  **correct** at that tag and is left untouched; the live 88 reflects `#15`
+  retiring the two `settings.maxNodesPerSample*` keys.
+- By the same policy, the [Unreleased] `#15` entry keeps its "80 tests" with a
+  correction beside it: the suite at that commit is 87, so 80 was never the
+  count at that tree.
 
 ### Fixed — the timeline response no longer ships the surface node set
 - Every sample carried a `nodes[]` echo of up to 500 surface nodes that **no
@@ -28,6 +97,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   serialised body stays under 1 KB for that sample, the retired key throws, and
   the empty-session route body carries no node array either. Verified
   `80 tests / 80 pass / 0 fail`, `check.mjs` `25 passed, 0 failed`.
+  **Correction (2026-09-24): the suite at this commit is `87 tests / 87 pass /
+  0 fail`** — `80` was never the count at this tree. Per the note at the top of
+  this file the figure is left in place; the live total is asserted against
+  `docs/COMPATIBILITY.md` by `tests/docs.spec.mjs`.
 
 ### Fixed — the export could silently produce no file
 - `download()` revoked the blob object URL **in the same synchronous task as
@@ -121,6 +194,11 @@ The manifest version now matches the tag (0.1.0 was still stamped at v0.1.1).
   because the harness's `clientBundle()` preset is not published.
 - `scripts/check.mjs`: 22 manifest and compliance assertions, including the
   `default`-export regression guard, literal-color ban, and host import purity.
+  **Correction (2026-09-24): the tagged tree at v0.1.0/v0.1.1 actually reports
+  `25 passed, 0 failed`** — the three stylesheet assertions landed in the same
+  release (`4eb9c1b`, which is an ancestor of the v0.1.0 tag) but were never
+  added to this line. The historical figure is kept above; the live one is
+  asserted by `tests/docs.spec.mjs`.
 
 ### Added — P2 数据层与纯函数
 - `src/client/model/`: the whole projection→view-model layer as total functions
@@ -132,6 +210,9 @@ The manifest version now matches the tag (0.1.0 was still stamped at v0.1.1).
 - The Context Lens panel: occupancy ring, stacked composition bar, headroom
   card, cache economics, provenance badge, and the measurement-basis note.
 - Typed `zh`/`en` locale dictionaries (90 keys each, key sets asserted equal).
+  (90 was correct at this tag — verified from the tagged tree. The live count is
+  now 88: `#15` retired the two `settings.maxNodesPerSample*` keys with the
+  array they capped.)
 - Styles using only `--dsw-alias-*` tokens; elevated popover uses elevation with
   `border: 0`; `prefers-reduced-motion` honored; full keyboard dismissal.
 
