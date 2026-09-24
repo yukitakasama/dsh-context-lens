@@ -121,7 +121,6 @@ time** rather than being silently ignored:
 |---|---|---|---|
 | `sampleStride` | `1` | 1–10000 | Log revisions to advance between samples. |
 | `maxSamples` | `2000` | 1–50000 | Sample cap per session; overflow is reported as `truncated`. |
-| `maxNodesPerSample` | `500` | 1–10000 | Surface nodes echoed per sample. |
 | `cacheTtlMs` | `15000` | 0–600000 | How long a read stays valid. |
 | `paceWindow` | `10` | 1–200 | Recent steps averaged for the capacity estimate. |
 

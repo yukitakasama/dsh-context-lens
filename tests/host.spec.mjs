@@ -265,9 +265,9 @@ test('recorder reports truncation instead of silently dropping samples', () => {
   assert.equal(payload.truncated, true, 'truncation is reported')
 })
 
-test('recorder caps echoed nodes and flags the cap', () => {
-  const config_ = config.validateConfig({ maxNodesPerSample: 2 })
-  const meter = fakeMeter([measurement(100, { nodes: 5 })])
+test('a sample carries the node count but never the node set (issue #15)', () => {
+  const config_ = config.validateConfig({})
+  const meter = fakeMeter([measurement(100, { nodes: 500 })])
   const session = {}
   const ctx = fakeContext({ meter, session })
   const recorder = new timeline.TimelineRecorder(() => ctx, config_)
@@ -275,10 +275,27 @@ test('recorder caps echoed nodes and flags the cap', () => {
   ctx.handler(session, { type: 'step/end', data: {} })
 
   const payload = recorder.payloadFor(ctx, 'session-1')
-  assert.equal(payload.samples[0].nodeCount, 5, 'the true count is reported')
-  assert.equal(payload.samples[0].nodes.length, 2, 'but only the cap is echoed')
-  assert.equal(payload.samples[0].nodesTruncated, true)
-  assert.equal(payload.truncated, true)
+  const sample = payload.samples[0]
+  assert.equal(sample.nodeCount, 500, 'the true count is reported as one integer')
+  assert.ok(!('nodes' in sample), 'the node array is not serialised')
+  assert.ok(!('nodesTruncated' in sample), 'the node-cap flag is gone with the array')
+  // 500 nodes used to add ~23KB of JSON per sample — 99.1% of the body. The
+  // whole one-sample body must now be orders of magnitude smaller.
+  assert.ok(JSON.stringify(payload).length < 1_000, 'the body no longer scales with surface size')
+})
+
+test('maxNodesPerSample is retired, so a profile setting it fails loud', () => {
+  assert.throws(() => config.validateConfig({ maxNodesPerSample: 2 }), /unknown config key/)
+})
+
+test('an empty known session reports no node echo either', () => {
+  const config_ = config.validateConfig({})
+  const ctx = fakeContext({ meter: fakeMeter([measurement(1)]) })
+  const recorder = new timeline.TimelineRecorder(() => ctx, config_)
+  const handler = timeline.createTimelineHandler(() => ctx, recorder)
+  const body = JSON.parse(callRoute(handler).body)
+  assert.deepEqual(body.samples, [], 'nothing sampled, nothing echoed')
+  assert.ok(!('nodes' in body), 'no node array at the top level')
 })
 
 test('recorder skips a sample whose measurement throws, without inventing a point', () => {

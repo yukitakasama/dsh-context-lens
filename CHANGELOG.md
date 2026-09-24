@@ -6,6 +6,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — the timeline response no longer ships the surface node set
+- Every sample carried a `nodes[]` echo of up to 500 surface nodes that **no
+  client code reads** — the sparkline is sized from `totalTokens`, and
+  `timelineOf` maps each sample to a fresh object without the array. Measured,
+  the unused array was **99.1% of the response body**: 4,613 KB → 42 KB at 200
+  samples × 500 nodes, extrapolating to ~46 MB at the default `maxSamples` of
+  2,000, all of it `no-cache` and refetched on every panel open, session switch
+  and refresh. The host now samples `nodeCount` (one integer, a meaningful
+  property of a sample) and **does not serialise the array at all**; per-node
+  detail, if ever wanted, belongs behind a separate explicitly-requested route
+  rather than attached to every sample of the main series. Closes #15.
+- `maxNodesPerSample` is retired with the array it capped, so
+  `settings.section` no longer offers an inert knob and a profile that still
+  sets it now **fails loud at load time** (`unknown config key`) instead of
+  silently accepting a value that changes nothing. Both shipped dictionaries
+  drop the two `settings.maxNodesPerSample*` keys, so the zh/en key sets stay
+  equal.
+- `tests/host.spec.mjs` guards the regression: a 500-node measurement yields a
+  sample with `nodeCount: 500` and no `nodes` / `nodesTruncated` field, the
+  serialised body stays under 1 KB for that sample, the retired key throws, and
+  the empty-session route body carries no node array either. Verified
+  `80 tests / 80 pass / 0 fail`, `check.mjs` `25 passed, 0 failed`.
+
 ### Fixed — the export could silently produce no file
 - `download()` revoked the blob object URL **in the same synchronous task as
   `anchor.click()`**. A click only *starts* the navigation; the browser reads
